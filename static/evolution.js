@@ -236,7 +236,6 @@ function updateCharacterVisuals(stateData) {
         const names = [...new Set(unknownItems)].join(', ');
         console.warn(`Server unlocked items this page doesn't know: ${names}. Is the old evolution_logic.py still running?`);
         showUnlockMessage(`Server is out of date (sent: ${names}). Update evolution_logic.py and restart Flask.`, 15000);
-        return;
     }
 
     if (stateData.coins !== undefined && stateData.coins !== null) {
@@ -247,10 +246,14 @@ function updateCharacterVisuals(stateData) {
         if (shopCoins) shopCoins.textContent = coinLabel;
     }
 
-    if (stateData.wallet_error) {
-        showUnlockMessage(stateData.wallet_error);
-    } else if (newlyUnlocked.length) {
+    if (unknownItems.length) return; // the "server is out of date" message above stays on screen
+
+    // Show the unlock message first: a wallet problem should not hide "New gear unlocked!"
+    if (newlyUnlocked.length) {
         showUnlockMessage(`New gear unlocked: ${newlyUnlocked.map((id) => GEAR_LABELS[id] || id).join(', ')}! Check the Customize menu to equip.`);
+        if (stateData.wallet_error) console.warn('Wallet problem:', stateData.wallet_error);
+    } else if (stateData.wallet_error) {
+        showUnlockMessage(stateData.wallet_error);
     }
 }
 

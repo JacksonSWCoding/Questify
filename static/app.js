@@ -117,10 +117,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const data = await response.json();
+        // Read as text first: if the server sends an HTML error page (missing route,
+        // crash, old server still running) we can explain it instead of showing
+        // "Unexpected token '<'".
+        const text = await response.text();
+        let data = {};
+
+        if (text) {
+            try {
+                data = JSON.parse(text);
+            } catch (parseError) {
+                throw new Error(
+                    `The server sent an unexpected response (${response.status}) for ` +
+                    `${options.method || 'GET'} ${url}. ` +
+                    'Is the Flask server up to date and running?'
+                );
+            }
+        }
 
         if (!response.ok) {
-            throw new Error(data.error || 'The request failed');
+            throw new Error(data.error || `The request failed (${response.status})`);
         }
 
         return data;
@@ -201,7 +217,14 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
 
         try {
-            await loadCharacterState();
+            // The complete endpoint returns the updated hero state, including
+            // "newly_unlocked". Use it directly so the unlock animation plays; a plain
+            // GET /api/character-state would report newly_unlocked as empty.
+            if (result && result.xp) {
+                updateCharacterVisuals(result);
+            } else {
+                await loadCharacterState();
+            }
         } finally {
             pendingTasks.delete(id);
         }
@@ -304,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
+            deleteBtn.className = 'delete-btn';
             deleteBtn.textContent = 'Delete';
             deleteBtn.setAttribute('aria-label', `Delete ${task.title}`);
             deleteBtn.disabled = resetting || pendingTasks.has(task.id);
@@ -351,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (closeModalBtn) closeModalBtn.disabled = busy;
 
         if (saveCustomizationBtn) {
-            saveCustomizationBtn.disabled = busy || !customizationLoaded;
+            saveCustomizationBtn.disabled = busy;
         }
 
         genderBtns.forEach(btn => {
@@ -417,6 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pendingGender = currentGender;
             syncGenderButtons();
             restoreEquipped(modalSnapshot.equipped);
+            saveEquipped(); // keep the stored gear in sync with what Cancel restored
             updateAvatarSprite(currentGender);
             modalSnapshot = null;
         }
@@ -438,27 +463,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     saveCustomizationBtn?.addEventListener('click', async () => {
-        if (
-            loadingCustomization ||
-            savingCustomization ||
-            !customizationLoaded
-        ) return;
+        if (loadingCustomization || savingCustomization) return;
 
         savingCustomization = true;
         updateCustomizationControls();
 
         try {
-            const result = await apiRequest('/api/player/customization', {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    character_model: pendingGender
-                })
-            });
-
-            currentGender = result.character_model;
-            pendingGender = currentGender;
-            updateAvatarSprite(currentGender);
+            // Gear choices are stored in the browser, so they are always saved, even
+            // if the character-choice request below fails.
             saveEquipped();
+
+            // Only talk to the server when the body type actually changed.
+            if (customizationLoaded && pendingGender !== currentGender) {
+                const result = await apiRequest('/api/player/customization', {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        character_model: pendingGender
+                    })
+                });
+
+                currentGender = result.character_model;
+                pendingGender = currentGender;
+                updateAvatarSprite(currentGender);
+            }
+
             modalSnapshot = null;
             customizerModal?.classList.add('hidden');
         } catch (error) {
