@@ -72,17 +72,6 @@
                   </div>
                   <!-- Item held overhead during the unlock animation -->
                   <div id="item-get-icon" class="item-get-icon" aria-hidden="true"></div>
-                    <div class="character-rig">
-                        <div
-                            id="base-avatar"
-                            class="lpc-sprite sprite-male"
-                        ></div>
-
-                        <div
-                            id="outfit-layer"
-                            class="lpc-sprite sprite-outfit-male"
-                        ></div>
-                    </div>
                 </div>
 
                 <p id="dominant-trait" class="dominant-trait">
@@ -209,8 +198,12 @@
         </div>
 
         <div class="modal-actions" style="margin-top: 20px;">
-          <button id="save-customization-btn" class="primary-btn">Save Changes</button>
-          <button id="close-modal-btn" class="secondary-btn">Cancel</button>
+          <button id="save-customization-btn" class="primary-btn" type="button">Save Changes</button>
+          <button id="close-modal-btn" class="secondary-btn" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <div id="shop-modal" class="shop-modal" hidden>
         <div class="shop-content">
             <div class="shop-header">
@@ -269,66 +262,6 @@
                 <div id="shop-inventory" class="shop-inventory">
                     <p>No items purchased yet.</p>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="customizer-modal" class="modal-overlay hidden">
-        <div class="modal-card">
-            <h2>Character Customization</h2>
-
-            <div class="custom-group">
-                <label>Base Model:</label>
-
-                <div class="gender-toggle">
-                    <button
-                        type="button"
-                        class="gender-btn active"
-                        data-gender="male"
-                    >
-                        Male
-                    </button>
-
-                    <button
-                        type="button"
-                        class="gender-btn"
-                        data-gender="female"
-                    >
-                        Female
-                    </button>
-                </div>
-            </div>
-
-            <hr style="border-color: #3b4252; margin: 20px 0;">
-
-            <div class="custom-group">
-                <label style="color: #bf616a;">Danger Zone:</label>
-
-                <button
-                    id="reset-progress-btn"
-                    class="danger-btn"
-                    type="button"
-                >
-                    Reset Hero Progress
-                </button>
-            </div>
-
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button
-                    id="save-customization-btn"
-                    class="primary-btn"
-                    type="button"
-                >
-                    Save Changes
-                </button>
-
-                <button
-                    id="close-modal-btn"
-                    class="secondary-btn"
-                    type="button"
-                >
-                    Cancel
-                </button>
             </div>
         </div>
     </div>
