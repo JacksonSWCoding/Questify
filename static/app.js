@@ -4,65 +4,113 @@ document.addEventListener('DOMContentLoaded', () => {
     const addBtn = document.getElementById('add-btn');
     const taskList = document.getElementById('task-list');
 
-    // Load tasks from localStorage on startup
-    let tasks = JSON.parse(localStorage.getItem('taskQuest_tasks')) || [];
-    renderTasks();
+    let tasks = [];
+    let addingTask = false;
+    const pendingTasks = new Set();
 
-    // Event Listeners
-    addBtn.addEventListener('click', addTask);
-    taskInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addTask();
-    });
-
-    function addTask() {
-        const text = taskInput.value.trim();
-        const category = categorySelect.value;
-
-        if (text === '') return;
-
-        const newTask = {
-            id: Date.now(),
-            text: text,
-            category: category,
-        };
-
-        tasks.push(newTask);
-        saveAndRender();
-        taskInput.value = '';
-    }
-
-    function completeTask(id, event) {
-        const task = tasks.find((t) => t.id === id);
-        if (task) {
-            completeEvolutionTask(task.category, task.text);
-        }
-
-        // Find the clicked checkbox's screen position
-        const rect = event.target.getBoundingClientRect();
-        const x = (rect.left + rect.width / 2) / window.innerWidth;
-        const y = (rect.top + rect.height / 2) / window.innerHeight;
-
-        // Trigger confetti bursting outwards from the circle
-        confetti({
-            particleCount: 35,
-            spread: 60,
-            origin: { x: x, y: y },
-            scalar: 0.8,
-            disableForReducedMotion: true,
+    async function apiRequest(url, options = {}) {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
 
-        // Filter out the completed task so it disappears from the list
-        tasks = tasks.filter((task) => task.id !== id);
+        const data = await response.json();
 
-        // Slight delay so the user sees the circle fill before the element disappears
-        setTimeout(() => {
-            saveAndRender();
-        }, 200);
+        if (!response.ok) {
+            throw new Error(data.error || 'The request failed');
+        }
+
+        return data;
     }
 
-    function saveAndRender() {
-        localStorage.setItem('taskQuest_tasks', JSON.stringify(tasks));
+    async function loadTasks() {
+        addBtn.disabled = true;
+
+        try {
+            const savedTasks = await apiRequest('/api/tasks');
+            tasks = savedTasks.filter(task => !task.completed);
+            renderTasks();
+        } catch (error) {
+            alert(`Could not load tasks: ${error.message}`);
+        } finally {
+            addBtn.disabled = false;
+        }
+    }
+
+    async function addTask() {
+        const title = taskInput.value.trim();
+        const category = categorySelect.value;
+
+        if (!title || addingTask || addBtn.disabled) return;
+
+        addingTask = true;
+        addBtn.disabled = true;
+        taskInput.disabled = true;
+        categorySelect.disabled = true;
+
+        try {
+            const task = await apiRequest('/api/tasks', {
+                method: 'POST',
+                body: JSON.stringify({ title, category })
+            });
+
+            tasks.push(task);
+            taskInput.value = '';
+            renderTasks();
+        } catch (error) {
+            alert(`Could not add task: ${error.message}`);
+        } finally {
+            addingTask = false;
+            addBtn.disabled = false;
+            taskInput.disabled = false;
+            categorySelect.disabled = false;
+            taskInput.focus();
+        }
+    }
+
+    async function completeTask(id, event) {
+        if (pendingTasks.has(id)) return;
+
+        const checkbox = event.target;
+        const rect = checkbox.getBoundingClientRect();
+        const origin = {
+            x: (rect.left + rect.width / 2) / window.innerWidth,
+            y: (rect.top + rect.height / 2) / window.innerHeight
+        };
+
+        pendingTasks.add(id);
+        checkbox.disabled = true;
+
+        let result;
+
+        try {
+            result = await apiRequest(`/api/tasks/${id}/complete`, {
+                method: 'POST'
+            });
+        } catch (error) {
+            pendingTasks.delete(id);
+            renderTasks();
+            alert(`Could not complete task: ${error.message}`);
+            return;
+        }
+
+        pendingTasks.delete(id);
+        tasks = tasks.filter(task => task.id !== id);
         renderTasks();
+        await loadCharacterState();
+
+        if (result.xp_awarded > 0 && typeof window.confetti === 'function') {
+            window.confetti({
+                particleCount: 35,
+                spread: 60,
+                origin,
+                scalar: 0.8,
+                disableForReducedMotion: true
+            });
+        }
     }
 
     function formatCategory(category) {
@@ -70,20 +118,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderTasks() {
-        taskList.innerHTML = '';
+        taskList.replaceChildren();
 
-        tasks.forEach((task) => {
+        tasks.forEach(task => {
             const li = document.createElement('li');
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
-            checkbox.addEventListener('change', (e) => completeTask(task.id, e));
+            checkbox.checked = pendingTasks.has(task.id);
+            checkbox.disabled = pendingTasks.has(task.id);
+            checkbox.setAttribute('aria-label', `Complete ${task.title}`);
+            checkbox.addEventListener('change', event => {
+                completeTask(task.id, event);
+            });
 
             const textSpan = document.createElement('span');
-            textSpan.textContent = task.text;
+            textSpan.textContent = task.title;
 
             const tag = document.createElement('span');
-            tag.className = `badge badge-${task.category.toLowerCase()}`;
+            tag.className = `badge badge-${task.category}`;
             tag.textContent = formatCategory(task.category);
 
             li.appendChild(checkbox);
@@ -92,4 +145,15 @@ document.addEventListener('DOMContentLoaded', () => {
             taskList.appendChild(li);
         });
     }
+
+    addBtn.addEventListener('click', addTask);
+
+    taskInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addTask();
+        }
+    });
+
+    loadTasks();
 });
