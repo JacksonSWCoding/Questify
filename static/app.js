@@ -62,16 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     void rig.offsetWidth;
                     rig.classList.add('item-get');
 
-                    // Forcefully hide all OTHER gear layers except the newly unlocked item during cheer animation
                     const allGears = document.querySelectorAll('.gear-layer');
-                    allGears.forEach((gear) => {
-                        if (gear !== newlyUnlockedItem && !gear.classList.contains('equipped')) {
-
-                    const allGears = document.querySelectorAll('.gear-layer');
-
                     allGears.forEach(gear => {
                         if (gear !== newlyUnlockedItem) {
-
                             gear.style.setProperty('opacity', '0', 'important');
                             gear.style.setProperty(
                                 'visibility',
@@ -349,6 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let savingCustomization = false;
     let customizationLoaded = false;
 
+    let modalSnapshot = null;
+
     function updateCustomizationControls() {
         const busy = loadingCustomization || savingCustomization;
 
@@ -359,34 +354,18 @@ document.addEventListener('DOMContentLoaded', () => {
             saveCustomizationBtn.disabled = busy || !customizationLoaded;
         }
 
-    // Snapshot taken when the modal opens so Cancel can put everything back
-    let modalSnapshot = null;
-
-    function syncGenderButtons() {
-        genderBtns.forEach((b) => b.classList.toggle('active', b.dataset.gender === currentGender));
-    }
-
-    customizeBtn?.addEventListener('click', () => {
-        modalSnapshot = {
-            gender: currentGender,
-            equipped: snapshotEquipped(),
-        };
-        customizerModal?.classList.remove('hidden');
-    });
-
-    closeModalBtn?.addEventListener('click', () => {
-        if (modalSnapshot) {
-            currentGender = modalSnapshot.gender;
-            syncGenderButtons();
-            restoreEquipped(modalSnapshot.equipped);
-            modalSnapshot = null;
-        }
         genderBtns.forEach(btn => {
             btn.disabled = busy || !customizationLoaded;
             btn.classList.toggle(
                 'active',
                 btn.dataset.gender === pendingGender
             );
+        });
+    }
+
+    function syncGenderButtons() {
+        genderBtns.forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.gender === currentGender);
         });
     }
 
@@ -422,18 +401,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     customizeBtn?.addEventListener('click', async () => {
-        const loaded = await loadCustomization();
-
-        if (loaded) {
-            customizerModal?.classList.remove('hidden');
-        }
+        modalSnapshot = {
+            gender: currentGender,
+            equipped: snapshotEquipped(),
+        };
+        customizerModal?.classList.remove('hidden');
+        await loadCustomization();
     });
 
     closeModalBtn?.addEventListener('click', () => {
         if (loadingCustomization || savingCustomization) return;
 
-        pendingGender = currentGender;
-        updateCustomizationControls();
+        if (modalSnapshot) {
+            currentGender = modalSnapshot.gender;
+            pendingGender = currentGender;
+            syncGenderButtons();
+            restoreEquipped(modalSnapshot.equipped);
+            updateAvatarSprite(currentGender);
+            modalSnapshot = null;
+        }
+
         customizerModal?.classList.add('hidden');
     });
 
@@ -450,12 +437,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    saveCustomizationBtn?.addEventListener('click', () => {
-        localStorage.setItem('char_gender', currentGender);
-        saveEquipped();
-        updateAvatarSprite(currentGender);
-        modalSnapshot = null;
-        customizerModal?.classList.add('hidden');
     saveCustomizationBtn?.addEventListener('click', async () => {
         if (
             loadingCustomization ||
@@ -477,6 +458,8 @@ document.addEventListener('DOMContentLoaded', () => {
             currentGender = result.character_model;
             pendingGender = currentGender;
             updateAvatarSprite(currentGender);
+            saveEquipped();
+            modalSnapshot = null;
             customizerModal?.classList.add('hidden');
         } catch (error) {
             alert(`Could not save character choice: ${error.message}`);
