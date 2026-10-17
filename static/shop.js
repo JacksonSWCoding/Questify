@@ -1,173 +1,185 @@
+
 const shopButton = document.getElementById("shop-button");
 const shopModal = document.getElementById("shop-modal");
 const closeButton = document.getElementById("close-shop");
 const shopContainer = document.getElementById("shop-items");
 const inventoryContainer = document.getElementById("shop-inventory");
+const coinDisplay = document.getElementById("shop-coins");
 
-const shopItems = [
-    { id: "red_beret", name: "Red Beret", price: 50, category: "accessories", requires: "beret" },
-    { id: "purple_beret", name: "Purple Beret", price: 75, category: "accessories", requires: "beret" },
-    { id: "blue_hoodie", name: "Blue Hoodie", price: 80, category: "clothes", requires: "hoodie" },
-    { id: "black_hoodie", name: "Black Hoodie", price: 100, category: "clothes", requires: "hoodie" },
-    { id: "forest_background", name: "Forest Background", price: 100, category: "backgrounds", requires: null },
-    { id: "castle_background", name: "Castle Background", price: 150, category: "backgrounds", requires: null }
-];
+let shopItems = [];
+let coins = 0;
+let selectedCategory = "all";
+let loading = false;
+let purchasing = false;
 
-let unlockedGear = [];
-let ownedCosmetics = [];
+// Temporary frontend-only equipment selection.
+// The backend must add an equip endpoint to save this permanently.
 let equippedCosmetics = {
     accessories: null,
     clothes: null,
     backgrounds: null
 };
-let selectedCategory = "all";
+
+async function shopRequest(url, options = {}) {
+    const response = await fetch(url, options);
+    const contentType = response.headers.get("content-type") || "";
+
+    if (!contentType.includes("application/json")) {
+        throw new Error(`Server returned HTTP ${response.status} instead of JSON`);
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || "Request failed");
+    }
+
+    return data;
+}
+
+async function loadShop() {
+    if (loading || purchasing) return;
+
+    loading = true;
+    renderShop();
+
+    try {
+        const data = await shopRequest("/api/shop");
+        coins = data.coins;
+        shopItems = data.items;
+        coinDisplay.textContent = coins;
+    } catch (error) {
+        coinDisplay.textContent = "Unavailable";
+        console.error("Could not load shop:", error);
+    } finally {
+        loading = false;
+        renderShop();
+    }
+}
+
+async function purchaseItem(itemId) {
+    if (loading || purchasing) return;
+
+    const item = shopItems.find((product) => product.id === itemId);
+
+    if (!item || item.owned) return;
+
+    if (!confirm(`Buy ${item.name} for ${item.price} coins?`)) return;
+
+    purchasing = true;
+    renderShop();
+
+    try {
+        await shopRequest(`/api/shop/${itemId}/purchase`, {
+            method: "POST"
+        });
+
+        await loadShopAfterPurchase();
+
+    } catch (error) {
+        alert(`Could not purchase item: ${error.message}`);
+    } finally {
+        purchasing = false;
+        renderShop();
+    }
+}
+
+async function loadShopAfterPurchase() {
+    const data = await shopRequest("/api/shop");
+
+    coins = data.coins;
+    shopItems = data.items;
+    coinDisplay.textContent = coins;
+}
+
+function renderShop() {
+    shopContainer.replaceChildren();
+    inventoryContainer.replaceChildren();
+
+    const visibleItems = shopItems.filter((item) =>
+        selectedCategory === "all" ||
+        item.category === selectedCategory
+    );
+
+    visibleItems.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "shop-item";
+
+        const title = document.createElement("h3");
+        title.textContent = item.name;
+
+        const price = document.createElement("p");
+        price.textContent = `🪙 ${item.price} coins`;
+
+        const button = document.createElement("button");
+        button.className = "buy-button";
+        button.type = "button";
+
+        if (item.owned) {
+            button.textContent = "Owned ✓";
+        } else if (coins < item.price) {
+            button.textContent = "Not enough coins";
+        } else {
+            button.textContent = "Buy";
+        }
+
+        button.disabled =
+            loading || purchasing || item.owned || coins < item.price;
+
+        button.addEventListener("click", () => purchaseItem(item.id));
+
+        card.append(title, price, button);
+        shopContainer.appendChild(card);
+    });
+
+    const ownedItems = shopItems.filter((item) => item.owned);
+
+    if (ownedItems.length === 0) {
+        inventoryContainer.textContent = "No items purchased yet.";
+        return;
+    }
+
+    ownedItems.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "shop-item";
+
+        const title = document.createElement("h3");
+        title.textContent = item.name;
+
+        const button = document.createElement("button");
+        button.className = "equip-button";
+        button.type = "button";
+
+        const isEquipped = equippedCosmetics[item.category] === item.id;
+
+        button.textContent = isEquipped ? "Equipped ✓" : "Equip";
+        button.disabled = isEquipped;
+
+        button.addEventListener("click", () => {
+            equippedCosmetics[item.category] = item.id;
+            renderShop();
+        });
+
+        card.append(title, button);
+        inventoryContainer.appendChild(card);
+    });
+}
 
 shopButton.addEventListener("click", () => {
     shopModal.removeAttribute("hidden");
-    loadUnlockedGear();
+    loadShop();
 });
 
 closeButton.addEventListener("click", () => {
     shopModal.setAttribute("hidden", "");
 });
 
-async function loadUnlockedGear() {
-    try {
-        const response = await fetch("/api/character-state");
-
-        if (!response.ok) {
-            throw new Error("Failed to load character state");
-        }
-
-        const player = await response.json();
-        unlockedGear = player.unlocked_items || [];
-
-        displayShopItems();
-    } catch (error) {
-        console.error("Could not load unlocked gear:", error);
-    }
-}
-
-function displayShopItems() {
-    shopContainer.innerHTML = "";
-
-    const filteredItems = shopItems.filter((item) =>
-        selectedCategory === "all" || item.category === selectedCategory
-    );
-
-    filteredItems.forEach((item) => {
-        const isUnlocked =
-            item.requires === null || unlockedGear.includes(item.requires);
-        const isOwned = ownedCosmetics.includes(item.id);
-
-        shopContainer.innerHTML += `
-            <div class="shop-item">
-                <h3>${item.name}</h3>
-                <p>🪙 ${item.price} coins</p>
-                ${
-                    isOwned
-                        ? `<button class="buy-button" disabled>Owned ✓</button>`
-                        : !isUnlocked
-                            ? `<button class="buy-button" disabled>🔒 Requires ${item.requires}</button>`
-                            : `<button class="buy-button" data-id="${item.id}">Buy</button>`
-                }
-            </div>
-        `;
-    });
-}
-
-function displayInventory() {
-    inventoryContainer.innerHTML = "";
-
-    if (ownedCosmetics.length === 0) {
-        inventoryContainer.innerHTML = "<p>No items purchased yet.</p>";
-        return;
-    }
-
-    ownedCosmetics.forEach((itemId) => {
-        const item = shopItems.find((product) => product.id === itemId);
-
-        if (!item) return;
-
-        const isEquipped = equippedCosmetics[item.category] === item.id;
-
-        inventoryContainer.innerHTML += `
-            <div class="shop-item">
-                <h3>${item.name}</h3>
-                <button class="equip-button"
-                    data-id="${item.id}"
-                    ${isEquipped ? "disabled" : ""}>
-                    ${isEquipped ? "Equipped ✓" : "Equip"}
-                </button>
-            </div>
-        `;
-    });
-}
-
-const categoryButtons = document.querySelectorAll(".shop-category");
-
-categoryButtons.forEach((button) => {
+document.querySelectorAll(".shop-category").forEach((button) => {
     button.addEventListener("click", () => {
         selectedCategory = button.dataset.category;
-        displayShopItems();
+        renderShop();
     });
 });
 
-inventoryContainer.addEventListener("click", (event) => {
-    const button = event.target.closest(".equip-button");
-    if (!button) return;
-
-    const itemId = button.dataset.id;
-    if (!ownedCosmetics.includes(itemId)) return;
-
-    const item = shopItems.find((product) => product.id === itemId);
-    if (!item) return;
-
-    equippedCosmetics[item.category] = item.id;
-    displayInventory();
-});
-
-shopContainer.addEventListener("click", async (event) => {
-    const button = event.target.closest(".buy-button");
-    if (!button || button.disabled) return;
-
-    const itemId = button.dataset.id;
-    const item = shopItems.find((product) => product.id === itemId);
-    if (!item) return;
-
-    button.disabled = true;
-    button.textContent = "Purchasing...";
-
-    try {
-        const response = await fetch("/api/shop/buy", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ item_id: itemId })
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || "Purchase failed");
-        }
-
-        ownedCosmetics = result.owned_cosmetics || [];
-        document.getElementById("shop-coins").textContent = result.coins;
-
-        displayShopItems();
-        displayInventory();
-    } catch (error) {
-        console.error("Purchase failed:", error);
-        alert(error.message);
-    } finally {
-        if (button.isConnected) {
-            button.disabled = false;
-            button.textContent = "Buy";
-        }
-    }
-});
-
-displayShopItems();
-displayInventory();
+renderShop();
+loadShop();
