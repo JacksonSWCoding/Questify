@@ -16,6 +16,27 @@ app = Flask(
 Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 DATABASE = Path(app.instance_path) / "tasks.db"
 
+SHOP_ITEMS = [
+    {
+        "id": 1,
+        "name": "Wizard Hat",
+        "price": 50,
+        "category": "accessories"
+    },
+    {
+        "id": 2,
+        "name": "Knight Armor",
+        "price": 100,
+        "category": "clothes"
+    },
+    {
+        "id": 3,
+        "name": "Forest Background",
+        "price": 150,
+        "category": "backgrounds"
+    }
+]
+
 
 def init_db():
     with sqlite3.connect(DATABASE) as connection:
@@ -68,6 +89,13 @@ def init_db():
             ]
         )
 
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS inventory (
+                item_id INTEGER PRIMARY KEY,
+                purchased_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
 
 @app.get("/")
 def index():
@@ -86,6 +114,7 @@ def health():
 def get_tasks():
     with sqlite3.connect(DATABASE) as connection:
         connection.row_factory = sqlite3.Row
+
         rows = connection.execute(
             "SELECT id, title, category, completed FROM tasks ORDER BY id"
         ).fetchall()
@@ -116,7 +145,6 @@ def create_task():
         return jsonify({"error": "Task title is required"}), 400
 
     title = title.strip()
-
     category = data.get("category", "general")
 
     if category not in ("general", "fitness", "coding", "creative"):
@@ -290,6 +318,7 @@ def reset_state():
         connection.execute(
             "UPDATE player SET xp = 0 WHERE id = 1"
         )
+
         connection.execute(
             "UPDATE category_progress SET xp = 0"
         )
@@ -322,6 +351,80 @@ def delete_task(task_id):
         "message": "Task deleted",
         "id": task_id
     })
+
+
+@app.get("/api/shop")
+def get_shop():
+    with sqlite3.connect(DATABASE) as connection:
+        connection.execute("BEGIN")
+
+        coins = connection.execute(
+            "SELECT coins FROM player WHERE id = 1"
+        ).fetchone()[0]
+
+        owned_ids = {
+            row[0]
+            for row in connection.execute(
+                "SELECT item_id FROM inventory"
+            ).fetchall()
+        }
+
+    return jsonify({
+        "coins": coins,
+        "items": [
+            {**item, "owned": item["id"] in owned_ids}
+            for item in SHOP_ITEMS
+        ]
+    })
+
+
+@app.post("/api/shop/<int:item_id>/purchase")
+def purchase_item(item_id):
+    item = next(
+        (item for item in SHOP_ITEMS if item["id"] == item_id),
+        None
+    )
+
+    if item is None:
+        return jsonify({"error": "Item not found"}), 404
+
+    with sqlite3.connect(DATABASE) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+
+        owned = connection.execute(
+            "SELECT item_id FROM inventory WHERE item_id = ?",
+            (item_id,)
+        ).fetchone()
+
+        if owned is not None:
+            return jsonify({"error": "You already own this item"}), 409
+
+        result = connection.execute(
+            """
+            UPDATE player
+            SET coins = coins - ?
+            WHERE id = 1 AND coins >= ?
+            """,
+            (item["price"], item["price"])
+        )
+
+        if result.rowcount == 0:
+            return jsonify({"error": "Not enough coins"}), 409
+
+        connection.execute(
+            "INSERT INTO inventory (item_id) VALUES (?)",
+            (item_id,)
+        )
+
+        coins = connection.execute(
+            "SELECT coins FROM player WHERE id = 1"
+        ).fetchone()[0]
+
+    return jsonify({
+        "message": "Item purchased",
+        "item": item,
+        "coins": coins
+    }), 201
 
 
 init_db()
