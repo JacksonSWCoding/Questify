@@ -17,25 +17,35 @@ Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 DATABASE = Path(app.instance_path) / "tasks.db"
 
 SHOP_ITEMS = [
-    {
-        "id": 1,
-        "name": "Wizard Hat",
-        "price": 50,
-        "category": "accessories"
-    },
-    {
-        "id": 2,
-        "name": "Knight Armor",
-        "price": 100,
-        "category": "clothes"
-    },
-    {
-        "id": 3,
-        "name": "Forest Background",
-        "price": 150,
-        "category": "backgrounds"
-    }
+    {"id": 1, "name": "Wizard Hat", "price": 50, "category": "accessories", "requires": None},
+    {"id": 2, "name": "Knight Armor", "price": 100, "category": "clothes", "requires": None},
+    {"id": 3, "name": "Forest Background", "price": 150, "category": "backgrounds", "requires": None},
+    {"id": 4, "name": "Red Beret", "price": 50, "category": "accessories", "requires": "beret"},
+    {"id": 5, "name": "Purple Beret", "price": 75, "category": "accessories", "requires": "beret"},
+    {"id": 6, "name": "Blue Hoodie", "price": 80, "category": "clothes", "requires": "hoodie"},
+    {"id": 7, "name": "Black Hoodie", "price": 100, "category": "clothes", "requires": "hoodie"},
+    {"id": 8, "name": "Castle Background", "price": 150, "category": "backgrounds", "requires": None}
 ]
+
+GEAR_REQUIREMENTS = {
+    "beret": ("creative", 10),
+    "hoodie": ("coding", 30)
+}
+
+
+def shop_item_unlocked(item, progress):
+    requirement = item["requires"]
+    if requirement is None:
+        return True
+    category, threshold = GEAR_REQUIREMENTS[requirement]
+    return progress.get(category, 0) >= threshold
+
+
+def shop_progress(connection):
+    return dict(connection.execute(
+        "SELECT category, xp FROM category_progress"
+    ).fetchall())
+
 
 
 def init_db():
@@ -450,10 +460,16 @@ def get_shop():
             ).fetchall()
         }
 
+        progress = shop_progress(connection)
+
     return jsonify({
         "coins": coins,
         "items": [
-            {**item, "owned": item["id"] in owned_ids}
+            {
+                **item,
+                "owned": item["id"] in owned_ids,
+                "unlocked": shop_item_unlocked(item, progress)
+            }
             for item in SHOP_ITEMS
         ]
     })
@@ -479,6 +495,11 @@ def purchase_item(item_id):
 
         if owned is not None:
             return jsonify({"error": "You already own this item"}), 409
+
+        if not shop_item_unlocked(item, shop_progress(connection)):
+            return jsonify({
+                "error": f"Unlock {item['requires']} before purchasing this item"
+            }), 403
 
         result = connection.execute(
             """
