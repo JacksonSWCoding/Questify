@@ -94,6 +94,19 @@ EQUIPMENT_REWARDS = {
     "crystal": ("creative", 60)
 }
 
+EQUIPMENT_SLOTS = {
+    "wizard_hat": "head",
+    "headband": "head",
+    "cap": "head",
+    "glasses": "face",
+    "black_shoes": "feet",
+    "cape": "back",
+    "bauldron": "shoulders",
+    "dagger": "hand",
+    "wand": "hand",
+    "crystal": "hand"
+}
+
 
 def shop_progress(connection):
     return dict(connection.execute(
@@ -120,13 +133,22 @@ def available_equipment(progress):
 
 
 def saved_equipment(connection):
-    return [
-        row[0]
-        for row in connection.execute(
-            "SELECT item_id FROM equipped_gear ORDER BY item_id"
-        )
-        if row[0] in EQUIPMENT_REWARDS
-    ]
+    equipped = []
+    occupied_slots = set()
+
+    rows = connection.execute(
+        "SELECT item_id FROM equipped_gear ORDER BY item_id"
+    )
+
+    for row in rows:
+        item_id = row[0]
+        slot = EQUIPMENT_SLOTS.get(item_id)
+
+        if slot is not None and slot not in occupied_slots:
+            equipped.append(item_id)
+            occupied_slots.add(slot)
+
+    return equipped
 
 
 def init_db():
@@ -472,6 +494,16 @@ def update_customization():
                 return jsonify({
                     "error": "You can only equip unlocked gear"
                 }), 403
+
+            selected_items = set(equipment)
+            selected_slots = [
+                EQUIPMENT_SLOTS[item] for item in selected_items
+            ]
+
+            if len(selected_slots) != len(set(selected_slots)):
+                return jsonify({
+                    "error": "Choose only one item per equipment slot"
+                }), 400
 
             connection.execute("DELETE FROM equipped_gear")
 

@@ -51,6 +51,19 @@ const EQUIPMENT = {
     }
 };
 
+const EQUIPMENT_SLOTS = {
+    wizard_hat: 'head',
+    headband: 'head',
+    cap: 'head',
+    glasses: 'face',
+    black_shoes: 'feet',
+    cape: 'back',
+    bauldron: 'shoulders',
+    dagger: 'hand',
+    wand: 'hand',
+    crystal: 'hand'
+};
+
 let unlockedEquipment = new Set();
 let savedEquipment = new Set();
 let pendingEquipment = new Set();
@@ -150,6 +163,14 @@ function renderEquipment() {
                 if (pendingEquipment.has(id)) {
                     pendingEquipment.delete(id);
                 } else {
+                    const slot = EQUIPMENT_SLOTS[id];
+
+                    for (const equippedId of [...pendingEquipment]) {
+                        if (EQUIPMENT_SLOTS[equippedId] === slot) {
+                            pendingEquipment.delete(equippedId);
+                        }
+                    }
+
                     pendingEquipment.add(id);
                 }
 
