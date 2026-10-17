@@ -4,16 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Questify</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Pointing back one folder to static/style.css -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@600;700&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet"
+    >
 
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
     <link rel="stylesheet" href="/static/shop.css">
     <script src="/static/shop.js" defer></script>
-
 </head>
+
 <body>
     <header class="hero-header">
         <h1 class="game-title">Questify</h1>
@@ -21,144 +24,242 @@
     </header>
 
     <div class="app-container">
-        <!-- LEFT PANEL: Task System -->
         <section class="task-panel">
             <h2>Today's Quests</h2>
 
-            <!-- Input Row -->
             <div class="input-group">
-                <input type="text" id="task-input" placeholder="Enter a new quest...">
+                <input
+                    type="text"
+                    id="task-input"
+                    placeholder="Enter a new quest..."
+                >
+
                 <select id="task-category">
                     <option value="general">📋 General</option>
                     <option value="fitness">🏃 Fitness</option>
                     <option value="coding">💻 Coding</option>
                     <option value="creative">🎨 Creative</option>
                 </select>
-                <button id="add-btn">Accept Quest</button>
+
+                <button id="add-btn" type="button">Accept Quest</button>
             </div>
 
-            <!-- Task List Container -->
-            <ul id="task-list">
-                <!-- Tasks will appear here -->
-            </ul>
+            <ul id="task-list"></ul>
         </section>
 
-        <!-- RIGHT PANEL: Character Window -->
         <section class="character-panel">
             <h2>Your Hero</h2>
+
             <div id="character-display">
-                <!-- Layers stack in DOM order: props behind the avatar, wearables in front -->
                 <div class="character-stage" data-trait="general">
-                  <!-- rig: one wrapper so idle breathing / the item-get hop move every layer together -->
-                  <div class="character-rig">
-                    <img id="item-computer_desk" class="gear-layer" src="/static/images/computer_desk.png" alt="Computer desk">
-                    <img id="item-easel" class="gear-layer" src="/static/images/easel.png" alt="Easel">
-                    <!-- Inside the .character-rig div -->
-                    <img id="base-avatar" src="/static/images/base.png" alt="Your hero"
-                        data-base-src="/static/images/base.png"
-                        data-buff-src="/static/images/base_buff.png"
-                        data-pose-src="/static/images/base_cheer.png">
-                    <img id="item-hoodie" class="gear-layer" src="/static/images/hoodie.png" alt="Hoodie">
-                    <img id="item-headband" class="gear-layer" src="/static/images/headband.png" alt="Headband">
-                    <img id="item-glasses" class="gear-layer" src="/static/images/glasses.png" alt="Glasses">
-                    <img id="item-beret" class="gear-layer" src="/static/images/beret.png" alt="Beret">
-                    <img id="item-dumbbells" class="gear-layer" src="/static/images/dumbbells.png" alt="Dumbbells">
-                    <img id="item-paintbrush" class="gear-layer" src="/static/images/paintbrush.png" alt="Paintbrush">
-                  </div>
+                    <div class="character-rig">
+                        <div
+                            id="base-avatar"
+                            class="lpc-sprite sprite-male"
+                        ></div>
+
+                        <div
+                            id="outfit-layer"
+                            class="lpc-sprite sprite-outfit-male"
+                        ></div>
+                    </div>
                 </div>
 
-                <p id="dominant-trait" class="dominant-trait">Dominant trait: General</p>
-                <p id="unlock-message" class="unlock-message" role="status"></p>
+                <p id="dominant-trait" class="dominant-trait">
+                    Dominant trait: General
+                </p>
+
+                <p
+                    id="unlock-message"
+                    class="unlock-message"
+                    role="status"
+                ></p>
 
                 <div class="xp-bars">
-                        <div class="xp-row">
-                            <span class="xp-label">📋 General</span>
-                            <div class="xp-track">
+                    <div class="xp-row">
+                        <span class="xp-label">📋 General</span>
+                        <div class="xp-track">
                             <div id="general-xp-bar" class="xp-fill"></div>
                         </div>
-                            <span id="general-xp-text" class="xp-text">0 XP</span>
+                        <span id="general-xp-text" class="xp-text">
+                            0 XP
+                        </span>
                     </div>
+
                     <div class="xp-row">
                         <span class="xp-label">🏃 Fitness</span>
-                        <div class="xp-track"><div id="fitness-xp-bar" class="xp-fill"></div></div>
-                        <span id="fitness-xp-text" class="xp-text">0 / 10 XP</span>
+                        <div class="xp-track">
+                            <div id="fitness-xp-bar" class="xp-fill"></div>
+                        </div>
+                        <span id="fitness-xp-text" class="xp-text">
+                            0 / 10 XP
+                        </span>
                     </div>
+
                     <div class="xp-row">
                         <span class="xp-label">💻 Coding</span>
-                        <div class="xp-track"><div id="coding-xp-bar" class="xp-fill"></div></div>
-                        <span id="coding-xp-text" class="xp-text">0 / 10 XP</span>
+                        <div class="xp-track">
+                            <div id="coding-xp-bar" class="xp-fill"></div>
+                        </div>
+                        <span id="coding-xp-text" class="xp-text">
+                            0 / 10 XP
+                        </span>
                     </div>
+
                     <div class="xp-row">
                         <span class="xp-label">🎨 Creative</span>
-                        <div class="xp-track"><div id="creative-xp-bar" class="xp-fill"></div></div>
-                        <span id="creative-xp-text" class="xp-text">0 / 10 XP</span>
+                        <div class="xp-track">
+                            <div id="creative-xp-bar" class="xp-fill"></div>
+                        </div>
+                        <span id="creative-xp-text" class="xp-text">
+                            0 / 10 XP
+                        </span>
                     </div>
                 </div>
 
                 <div id="unlocked-gear-list" class="unlocked-gear"></div>
-
-                <button id="reset-xp-btn" class="btn-reset" type="button">Reset Hero Progress</button>
             </div>
-            <button id="shop-button">🛍️ Shop</button>
+
+            <button
+                id="shop-button"
+                class="ui-button shop-corner-btn"
+                type="button"
+            >
+                🛍️ Shop
+            </button>
+
+            <button
+                id="customize-btn"
+                class="ui-button customize-corner-btn"
+                type="button"
+            >
+                ⚙️ Customize
+            </button>
         </section>
-
-<!-- AVATAR SHOP POPUP -->
-<div id="shop-modal" class="shop-modal" hidden>
-
-    <div class="shop-content">
-
-        <!-- Shop Header -->
-        <div class="shop-header">
-            <h2>🛍️ Avatar Shop</h2>
-            <button id="close-shop" type="button">✕ Close</button>
-        </div>
-
-        <!-- Coin Balance -->
-        <div class="shop-wallet">
-            <h3>🪙 Your Coins: <span id="shop-coins">0</span></h3>
-        </div>
-
-        <!-- Shop Categories -->
-        <div class="shop-categories">
-            <button class="shop-category" data-category="all">
-                All
-            </button>
-
-            <button class="shop-category" data-category="clothes">
-                Clothes
-            </button>
-
-            <button class="shop-category" data-category="accessories">
-                Accessories
-            </button>
-
-            <button class="shop-category" data-category="backgrounds">
-                Backgrounds
-            </button>
-        </div>
-
-        <!-- Available Items -->
-        <div class="shop-section">
-            <h3>Available Items</h3>
-
-            <div id="shop-items" class="shop-items">
-                <!-- JavaScript will display shop items here -->
-            </div>
-        </div>
-
-        <!-- Purchased Items -->
-        <div class="inventory-section">
-            <h3>🎒 Your Inventory</h3>
-
-            <div id="shop-inventory" class="shop-inventory">
-                <p>No items purchased yet.</p>
-            </div>
-        </div>
-
     </div>
 
-</div>
-<!-- END AVATAR SHOP -->
+    <div id="shop-modal" class="shop-modal" hidden>
+        <div class="shop-content">
+            <div class="shop-header">
+                <h2>🛍️ Avatar Shop</h2>
+                <button id="close-shop" type="button">✕ Close</button>
+            </div>
+
+            <div class="shop-wallet">
+                <h3>🪙 Your Coins: <span id="shop-coins">0</span></h3>
+            </div>
+
+            <div class="shop-categories">
+                <button
+                    class="shop-category"
+                    data-category="all"
+                    type="button"
+                    aria-pressed="true"
+                >
+                    All
+                </button>
+
+                <button
+                    class="shop-category"
+                    data-category="clothes"
+                    type="button"
+                    aria-pressed="false"
+                >
+                    Clothes
+                </button>
+
+                <button
+                    class="shop-category"
+                    data-category="accessories"
+                    type="button"
+                    aria-pressed="false"
+                >
+                    Accessories
+                </button>
+
+                <button
+                    class="shop-category"
+                    data-category="backgrounds"
+                    type="button"
+                    aria-pressed="false"
+                >
+                    Backgrounds
+                </button>
+            </div>
+
+            <div class="shop-section">
+                <h3>Available Items</h3>
+                <div id="shop-items" class="shop-items"></div>
+            </div>
+
+            <div class="inventory-section">
+                <h3>🎒 Your Inventory</h3>
+
+                <div id="shop-inventory" class="shop-inventory">
+                    <p>No items purchased yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="customizer-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h2>Character Customization</h2>
+
+            <div class="custom-group">
+                <label>Base Model:</label>
+
+                <div class="gender-toggle">
+                    <button
+                        type="button"
+                        class="gender-btn active"
+                        data-gender="male"
+                    >
+                        Male
+                    </button>
+
+                    <button
+                        type="button"
+                        class="gender-btn"
+                        data-gender="female"
+                    >
+                        Female
+                    </button>
+                </div>
+            </div>
+
+            <hr style="border-color: #3b4252; margin: 20px 0;">
+
+            <div class="custom-group">
+                <label style="color: #bf616a;">Danger Zone:</label>
+
+                <button
+                    id="reset-progress-btn"
+                    class="danger-btn"
+                    type="button"
+                >
+                    Reset Hero Progress
+                </button>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button
+                    id="save-customization-btn"
+                    class="primary-btn"
+                    type="button"
+                >
+                    Save Changes
+                </button>
+
+                <button
+                    id="close-modal-btn"
+                    class="secondary-btn"
+                    type="button"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>

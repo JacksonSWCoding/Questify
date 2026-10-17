@@ -3,7 +3,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const categorySelect = document.getElementById('task-category');
     const addBtn = document.getElementById('add-btn');
     const taskList = document.getElementById('task-list');
-    const resetBtn = document.getElementById('reset-xp-btn');
+    const resetBtn = document.getElementById('reset-progress-btn');
+    const baseAvatar = document.getElementById('base-avatar');
+    const outfitLayer = document.getElementById('outfit-layer');
+
+    let currentGender = localStorage.getItem('char_gender') === 'female' ? 'female' : 'male';
+    let pendingGender = currentGender;
+
+    function updateAvatarSprite(gender) {
+        if (baseAvatar) {
+            baseAvatar.classList.remove('sprite-male', 'sprite-female');
+            baseAvatar.classList.add(`sprite-${gender}`);
+        }
+        if (outfitLayer) {
+            outfitLayer.classList.remove('sprite-outfit-male', 'sprite-outfit-female');
+            outfitLayer.classList.add(`sprite-outfit-${gender}`);
+        }
+    }
+    updateAvatarSprite(currentGender);
 
     let tasks = [];
     let addingTask = false;
@@ -12,43 +29,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const rig = document.querySelector('.character-rig');
     const stage = document.querySelector('.character-stage');
-    const baseAvatar = document.getElementById('base-avatar');
     let cheerTimer = null;
-    let poseResetTimer = null;
-    let previousAvatarSrc = '';
+    let gearResetTimer = null;
 
     if (rig && stage) {
         new MutationObserver((records) => {
             records.forEach((record) => {
                 const target = record.target;
                 const oldValues = (record.oldValue || '').split(/\s+/);
+
                 if (
                     target.classList.contains('gear-layer') &&
                     target.classList.contains('just-unlocked') &&
                     !oldValues.includes('just-unlocked')
                 ) {
                     const newlyUnlockedItem = target;
+
                     document.querySelectorAll('.gear-layer').forEach((gear) => {
                         if (gear !== newlyUnlockedItem) {
                             gear.classList.remove('just-unlocked');
                         }
                     });
+
                     if (rig.classList.contains('item-get')) return;
 
                     rig.classList.remove('item-get');
                     void rig.offsetWidth;
                     rig.classList.add('item-get');
-                    if (baseAvatar && baseAvatar.dataset.poseSrc) {
-                        const poseSrc = baseAvatar.dataset.poseSrc;
-                        if (!baseAvatar.src.includes(poseSrc)) {
-                            previousAvatarSrc = baseAvatar.src;
-                        }
-                        if (!previousAvatarSrc || previousAvatarSrc.includes(poseSrc)) {
-                            previousAvatarSrc = baseAvatar.dataset.baseSrc || '/static/images/base.png';
-                        }
-
-                        baseAvatar.src = poseSrc;
-                    }
                     const allGears = document.querySelectorAll('.gear-layer');
                     allGears.forEach((gear) => {
                         if (gear !== newlyUnlockedItem) {
@@ -58,15 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     clearTimeout(cheerTimer);
-                    clearTimeout(poseResetTimer);
+                    clearTimeout(gearResetTimer);
 
                     cheerTimer = setTimeout(() => {
                         rig.classList.remove('item-get');
                     }, 2700);
-                    poseResetTimer = setTimeout(() => {
-                        if (baseAvatar && previousAvatarSrc) {
-                            baseAvatar.src = previousAvatarSrc;
-                        }
+
+                    gearResetTimer = setTimeout(() => {
                         allGears.forEach((gear) => {
                             gear.style.removeProperty('opacity');
                             gear.style.removeProperty('visibility');
@@ -223,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const confirmed = confirm(
             'Reset all hero XP and unlocked gear? ' +
-            'Tasks will stay, and completed tasks will remain completed.'
+            'Tasks, coins, purchases, and character choice will stay. Completed tasks remain completed.'
         );
 
         if (!confirmed) return;
@@ -304,4 +309,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     loadTasks();
+    const customizeBtn = document.getElementById('customize-btn');
+    const customizerModal = document.getElementById('customizer-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const saveCustomizationBtn = document.getElementById('save-customization-btn');
+    const genderBtns = document.querySelectorAll('.gender-btn');
+
+    genderBtns.forEach(btn => {
+        if (btn.dataset.gender === currentGender) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    customizeBtn?.addEventListener('click', () => {
+        pendingGender = currentGender;
+        genderBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.gender === currentGender);
+        });
+        customizerModal?.classList.remove('hidden');
+    });
+
+    closeModalBtn?.addEventListener('click', () => {
+        customizerModal?.classList.add('hidden');
+    });
+
+    genderBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            genderBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            pendingGender = btn.dataset.gender;
+        });
+    });
+
+    saveCustomizationBtn?.addEventListener('click', () => {
+        currentGender = pendingGender;
+        localStorage.setItem('char_gender', currentGender);
+        updateAvatarSprite(currentGender);
+        customizerModal?.classList.add('hidden');
+    });
 });
