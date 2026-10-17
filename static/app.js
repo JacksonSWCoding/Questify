@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const categorySelect = document.getElementById('category-select');
     const addBtn = document.getElementById('add-btn');
     const taskList = document.getElementById('task-list');
+    const xpTag = document.createElement('span');
+    xpTag.className = 'xp-badge';
+    xpTag.textContent = '+20 XP'; // You can tie this dynamically to categories later!
 
     // Load tasks from localStorage on startup
     let tasks = JSON.parse(localStorage.getItem('taskQuest_tasks')) || [];

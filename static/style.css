@@ -4,7 +4,8 @@
 }
 
 body {
-    background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%);
+    background: linear-gradient(135deg, #090d16 0%, #1a1c29 100%);
+    color: #f8fafc;
     min-height: 100vh;
     margin: 0;
     padding: 30px 20px;
@@ -17,22 +18,25 @@ body {
     margin: 0 auto;
 }
 
+/* Dark Mode Panels */
 .task-panel, .character-panel {
-    background: #ffffff;
+    background: #111827;
+    border: 1px solid #1f2937;
     padding: 24px;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     flex: 1;
 }
 
 h2 {
     margin-top: 0;
-    color: #2c3e50;
+    color: #f1f5f9;
     font-size: 1.5rem;
-    border-bottom: 2px solid #eef2f3;
+    border-bottom: 2px solid #1f2937;
     padding-bottom: 10px;
 }
 
+/* Dark Input Group for Adding Tasks */
 .input-group {
     display: flex;
     gap: 10px;
@@ -42,27 +46,42 @@ h2 {
 input[type="text"] {
     flex: 1;
     padding: 10px 14px;
-    border: 1.5px solid #dcdfe6;
+    background: #1f2937;
+    border: 1.5px solid #374151;
     border-radius: 6px;
     font-size: 0.95rem;
+    color: #f8fafc;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+input[type="text"]::placeholder {
+    color: #9ca3af;
 }
 
 input[type="text"]:focus {
     border-color: #3b82f6;
+    background: #111827;
 }
 
+/* Dark Category Selector Dropdown */
 select {
     padding: 10px;
-    border: 1.5px solid #dcdfe6;
+    background: #1f2937;
+    border: 1.5px solid #374151;
     border-radius: 6px;
-    background: white;
+    color: #f8fafc;
     cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+select:focus {
+    border-color: #3b82f6;
 }
 
 button {
-    background-color: #3b82f6;
+    background-color: #2563eb;
     color: white;
     border: none;
     padding: 10px 18px;
@@ -73,7 +92,7 @@ button {
 }
 
 button:hover {
-    background-color: #2563eb;
+    background-color: #1d4ed8;
 }
 
 button:active {
@@ -86,21 +105,24 @@ ul {
     margin: 0;
 }
 
+/* Dark Quest Item Cards */
 li {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: #1f2937;
+    border: 1px solid #374151;
     border-radius: 8px;
     margin-bottom: 8px;
+    color: #e2e8f0;
     transition: all 0.2s ease;
 }
 
 li:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    border-color: #3b82f6;
+    background: #252f3f;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Circular Checkbox Buttons */
@@ -109,7 +131,7 @@ li input[type="checkbox"] {
     -webkit-appearance: none;
     width: 20px;
     height: 20px;
-    border: 2px solid #94a3b8;
+    border: 2px solid #64748b;
     border-radius: 50%;
     outline: none;
     cursor: pointer;
@@ -120,7 +142,7 @@ li input[type="checkbox"] {
 
 li input[type="checkbox"]:hover {
     border-color: #3b82f6;
-    background-color: #eff6ff;
+    background-color: rgba(59, 130, 246, 0.15);
 }
 
 li input[type="checkbox"]:checked {
@@ -141,16 +163,33 @@ li input[type="checkbox"]:checked::after {
     transform: rotate(45deg);
 }
 
-/* Category Badges */
+/* Dark Theme Category Badges */
 .badge {
     font-size: 0.75rem;
     font-weight: 600;
-    padding: 4px 8px;
+    padding: 4px 10px;
     border-radius: 12px;
     margin-left: auto;
+    border: 1px solid transparent;
 }
 
-.badge-general { background: #e2e8f0; color: #475569; }
-.badge-fitness { background: #dcfce7; color: #15803d; }
-.badge-tech    { background: #dbeafe; color: #1d4ed8; }
-.badge-creative{ background: #f3e8ff; color: #6b21a8; }
+.badge-general { 
+    background: #334155; 
+    color: #cbd5e1; 
+    border-color: #475569; 
+}
+.badge-fitness { 
+    background: rgba(22, 101, 52, 0.4); 
+    color: #4ade80; 
+    border-color: #166534; 
+}
+.badge-tech { 
+    background: rgba(30, 58, 138, 0.4); 
+    color: #60a5fa; 
+    border-color: #1e3a8a; 
+}
+.badge-creative { 
+    background: rgba(88, 28, 135, 0.4); 
+    color: #c084fc; 
+    border-color: #581c87; 
+}
