@@ -109,7 +109,16 @@ function updateCharacterVisuals(stateData) {
         }));
     }
 
-    if (newlyUnlocked.length) {
+    if (stateData.coins !== undefined && stateData.coins !== null) {
+        const wallet = document.getElementById('wallet-balance');
+        const shopCoins = document.getElementById('shop-coins');
+        if (wallet) wallet.textContent = stateData.coins;
+        if (shopCoins) shopCoins.textContent = stateData.coins;
+    }
+
+    if (stateData.wallet_error) {
+        showUnlockMessage(stateData.wallet_error);
+    } else if (newlyUnlocked.length) {
         showUnlockMessage(`New gear unlocked: ${newlyUnlocked.map((id) => GEAR_LABELS[id] || id).join(', ')}!`);
     }
 }

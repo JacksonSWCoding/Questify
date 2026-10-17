@@ -69,9 +69,36 @@
                 <div id="unlocked-gear-list" class="unlocked-gear"></div>
             </div>
 
+            <p class="wallet-line">🏦 Habit Vault: $<span id="wallet-balance">—</span></p>
             <button id="shop-button" class="ui-button shop-corner-btn">🛍️ Shop</button>
             <button id="customize-btn" class="ui-button customize-corner-btn">⚙️ Customize</button>
         </section>
+    </div>
+
+    <div id="shop-modal" class="shop-modal" hidden>
+        <div class="shop-content">
+            <div class="shop-header">
+                <h2>Avatar Shop</h2>
+                <button id="close-shop" type="button">Close</button>
+            </div>
+            <div class="shop-wallet">
+                <h3>🏦 Habit Vault: $<span id="shop-coins">—</span></h3>
+            </div>
+            <div class="shop-categories">
+                <button class="shop-category" type="button" data-category="all">All</button>
+                <button class="shop-category" type="button" data-category="clothes">Clothes</button>
+                <button class="shop-category" type="button" data-category="accessories">Accessories</button>
+                <button class="shop-category" type="button" data-category="backgrounds">Backgrounds</button>
+            </div>
+            <div class="shop-section">
+                <h3>Available Items</h3>
+                <div id="shop-items" class="shop-items"></div>
+            </div>
+            <div class="inventory-section">
+                <h3>Your Inventory</h3>
+                <div id="shop-inventory" class="shop-inventory"></div>
+            </div>
+        </div>
     </div>
 
     <!-- CUSTOMIZATION MODAL -->

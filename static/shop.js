@@ -41,8 +41,18 @@ async function loadUnlockedGear() {
 
         const player = await response.json();
         unlockedGear = player.unlocked_items || [];
+        if (Array.isArray(player.owned_cosmetics)) {
+            ownedCosmetics = player.owned_cosmetics;
+        }
+        if (player.coins !== undefined && player.coins !== null) {
+            const shopCoins = document.getElementById("shop-coins");
+            const wallet = document.getElementById("wallet-balance");
+            if (shopCoins) shopCoins.textContent = player.coins;
+            if (wallet) wallet.textContent = player.coins;
+        }
 
         displayShopItems();
+        displayInventory();
     } catch (error) {
         console.error("Could not load unlocked gear:", error);
     }
