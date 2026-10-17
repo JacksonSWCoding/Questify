@@ -1,70 +1,199 @@
 * {
     box-sizing: border-box;
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-    background-color: #f4f6f8;
+    background: linear-gradient(135deg, #090d16 0%, #1a1c29 100%);
+    color: #f8fafc;
+    min-height: 100vh;
     margin: 0;
-    padding: 20px;
+    padding: 30px 20px;
 }
 
 .app-container {
     display: flex;
-    gap: 20px;
-    max-width: 1000px;
+    gap: 24px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 
+/* RPG Panel Cards */
 .task-panel, .character-panel {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: #111827;
+    border: 1px solid #1f2937;
+    padding: 24px;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     flex: 1;
 }
 
+h2 {
+    margin-top: 0;
+    color: #f1f5f9;
+    font-size: 1.4rem;
+    border-bottom: 2px solid #1f2937;
+    padding-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Quest Input Bar */
 .input-group {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     margin-bottom: 20px;
 }
 
 input[type="text"] {
     flex: 1;
-    padding: 8px;
+    padding: 10px 14px;
+    background: #1f2937;
+    border: 1.5px solid #374151;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #f8fafc;
+    outline: none;
+    transition: all 0.2s;
+}
+
+input[type="text"]::placeholder {
+    color: #9ca3af;
+}
+
+input[type="text"]:focus {
+    border-color: #3b82f6;
+    background: #0f172a;
+}
+
+select {
+    padding: 10px;
+    background: #1f2937;
+    border: 1.5px solid #374151;
+    border-radius: 8px;
+    color: #f8fafc;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+select:focus {
+    border-color: #3b82f6;
 }
 
 button {
-    background-color: #1a73e8;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
     cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
 }
 
 ul {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
+/* Quest Cards */
 li {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    color: #e2e8f0;
+    transition: all 0.2s ease;
 }
 
-li.completed span {
-    text-decoration: line-through;
-    color: #888;
+li:hover {
+    border-color: #4b5563;
+    background: #252f3f;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+/* Circular Checkbox Buttons */
+li input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border: 2px solid #64748b;
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    position: relative;
+    background: #0f172a;
+}
+
+li input[type="checkbox"]:hover {
+    border-color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.1);
+}
+
+li input[type="checkbox"]:checked {
+    background-color: #38bdf8;
+    border-color: #38bdf8;
+}
+
+/* Inner Checkmark Icon */
+li input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 7px;
+    width: 4px;
+    height: 9px;
+    border: solid #0f172a;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* RPG Category Badges */
 .badge {
-    font-size: 0.8em;
-    background: #e0e0e0;
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-left: auto;
+    letter-spacing: 0.3px;
+}
+
+.badge- general { 
+    background: #334155; 
+    color: #cbd5e1; 
+}
+.badge-fitness { 
+    background: rgba(16, 185, 129, 0.15); 
+    color: #34d399; 
+    border: 1px solid rgba(16, 185, 129, 0.3); 
+}
+.badge-tech { 
+    background: rgba(59, 130, 246, 0.15); 
+    color: #60a5fa; 
+    border: 1px solid rgba(59, 130, 246, 0.3); 
+}
+.badge-creative { 
+    background: rgba(168, 85, 247, 0.15); 
+    color: #c084fc; 
+    border: 1px solid rgba(168, 85, 247, 0.3); 
 }
