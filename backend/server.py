@@ -35,6 +35,17 @@ def init_db():
             )
         """)
 
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(player)")
+        }
+
+        if "coins" not in columns:
+            connection.execute(
+                "ALTER TABLE player ADD COLUMN coins "
+                "INTEGER NOT NULL DEFAULT 0 CHECK (coins >= 0)"
+            )
+
         connection.execute("""
             INSERT OR IGNORE INTO player (id, xp)
             VALUES (1, 0)
@@ -138,6 +149,7 @@ def complete_task(task_id):
         )
 
         xp_awarded = 10 if result.rowcount == 1 else 0
+        coins_awarded = 10 if result.rowcount == 1 else 0
 
         task = connection.execute(
             "SELECT * FROM tasks WHERE id = ?",
@@ -148,8 +160,8 @@ def complete_task(task_id):
             return jsonify({"error": "Task not found"}), 404
 
         connection.execute(
-            "UPDATE player SET xp = xp + ? WHERE id = 1",
-            (xp_awarded,)
+            "UPDATE player SET xp = xp + ?, coins = coins + ? WHERE id = 1",
+            (xp_awarded, coins_awarded)
         )
 
         connection.execute(
@@ -158,7 +170,7 @@ def complete_task(task_id):
         )
 
         player = connection.execute(
-            "SELECT xp FROM player WHERE id = 1"
+            "SELECT xp, coins FROM player WHERE id = 1"
         ).fetchone()
 
         total_xp = player["xp"]
@@ -171,6 +183,8 @@ def complete_task(task_id):
             "completed": bool(task["completed"])
         },
         "xp_awarded": xp_awarded,
+        "coins_awarded": coins_awarded,
+        "coins": player["coins"],
         "xp": total_xp,
         "level": 1 + total_xp // 30
     })
@@ -182,7 +196,7 @@ def get_player():
         connection.row_factory = sqlite3.Row
 
         player = connection.execute(
-            "SELECT xp FROM player WHERE id = 1"
+            "SELECT xp, coins FROM player WHERE id = 1"
         ).fetchone()
 
     xp = player["xp"]
@@ -202,16 +216,19 @@ def get_player():
 
     return jsonify({
         "xp": xp,
+        "coins": player["coins"],
         "level": level,
         "xp_into_level": xp % 30,
         "xp_per_level": 30,
         "unlocked_gear": unlocked_gear
     })
 
+
 @app.get("/api/character-state")
 def character_state():
     with sqlite3.connect(DATABASE) as connection:
         connection.row_factory = sqlite3.Row
+
         rows = connection.execute(
             "SELECT category, xp FROM category_progress"
         ).fetchall()
@@ -279,6 +296,7 @@ def reset_state():
 
     return character_state()
 
+
 @app.delete("/api/tasks/<int:task_id>")
 def delete_task(task_id):
     with sqlite3.connect(DATABASE) as connection:
@@ -304,6 +322,7 @@ def delete_task(task_id):
         "message": "Task deleted",
         "id": task_id
     })
+
 
 init_db()
 
