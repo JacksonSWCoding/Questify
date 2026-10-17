@@ -1,161 +1,307 @@
-// Category Evolution System: syncs XP/gear state with the Flask API and renders it.
-
-const EVOLUTION_TIERS = {
-    fitness: [[10, 'headband'], [30, 'dumbbells'], [60, 'muscle_upgrade']],
-    coding: [[10, 'glasses'], [30, 'hoodie'], [60, 'computer_desk']],
-    creative: [[10, 'beret'], [30, 'paintbrush'], [60, 'easel']],
+const EQUIPMENT = {
+    wizard_hat: {
+        name: 'Wizard Hat',
+        category: 'general',
+        xp: 30
+    },
+    black_shoes: {
+        name: 'Shoes',
+        category: 'fitness',
+        xp: 10
+    },
+    headband: {
+        name: 'Headband',
+        category: 'fitness',
+        xp: 30
+    },
+    dagger: {
+        name: 'Dagger',
+        category: 'fitness',
+        xp: 60
+    },
+    glasses: {
+        name: 'Glasses',
+        category: 'coding',
+        xp: 10
+    },
+    cape: {
+        name: 'Cape',
+        category: 'coding',
+        xp: 30
+    },
+    wand: {
+        name: 'Magic Staff',
+        category: 'coding',
+        xp: 60
+    },
+    cap: {
+        name: 'Leather Cap',
+        category: 'creative',
+        xp: 10
+    },
+    bauldron: {
+        name: 'Shoulder Armor',
+        category: 'creative',
+        xp: 30
+    },
+    crystal: {
+        name: 'Crystal',
+        category: 'creative',
+        xp: 60
+    }
 };
-const XP_BAR_MAX = 60;
 
-const GEAR_LABELS = {
-    headband: 'Headband',
-    dumbbells: 'Dumbbells',
-    muscle_upgrade: 'Muscle Upgrade',
-    glasses: 'Glasses',
-    hoodie: 'Hoodie',
-    computer_desk: 'Computer Desk',
-    beret: 'Beret',
-    paintbrush: 'Paintbrush',
-    easel: 'Easel',
-};
+let unlockedEquipment = new Set();
+let savedEquipment = new Set();
+let pendingEquipment = new Set();
+let editingEquipment = false;
+let equipmentBusy = false;
 
-let unlockMessageTimer = null;
-
-function capitalize(word) {
-    return word.charAt(0).toUpperCase() + word.slice(1);
+function selectedEquipment() {
+    return [...pendingEquipment];
 }
 
-async function evolutionRequest(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            headers: { 'Content-Type': 'application/json' },
-            ...options,
+function applyEquipment() {
+    for (const id of Object.keys(EQUIPMENT)) {
+        const layer = document.getElementById('item-' + id);
+
+        layer?.classList.toggle(
+            'equipped',
+            unlockedEquipment.has(id) && pendingEquipment.has(id)
+        );
+    }
+
+    document.getElementById('item-black_glasses')
+        ?.classList.remove('equipped');
+}
+
+function setEquipmentBusy(busy) {
+    equipmentBusy = busy;
+    renderEquipment();
+}
+
+function beginEquipmentEdit() {
+    editingEquipment = true;
+    pendingEquipment = new Set(savedEquipment);
+    applyEquipment();
+    renderEquipment();
+}
+
+function cancelEquipmentEdit() {
+    editingEquipment = false;
+    pendingEquipment = new Set(savedEquipment);
+    applyEquipment();
+    renderEquipment();
+}
+
+function acceptEquipment(items) {
+    savedEquipment = new Set(items);
+    cancelEquipmentEdit();
+}
+
+function renderEquipment() {
+    const container = document.getElementById('equipment-inventory');
+
+    if (!container) return;
+
+    container.replaceChildren();
+
+    for (const category of [
+        'general',
+        'fitness',
+        'coding',
+        'creative'
+    ]) {
+        const section = document.createElement('section');
+        const heading = document.createElement('h3');
+
+        heading.textContent =
+            category[0].toUpperCase() + category.slice(1);
+
+        const group = document.createElement('div');
+        group.className = 'inv-slot-group';
+
+        for (const [id, item] of Object.entries(EQUIPMENT)) {
+            if (item.category !== category) continue;
+
+            const unlocked = unlockedEquipment.has(id);
+            const selected = pendingEquipment.has(id);
+
+            const button = document.createElement('button');
+            button.type = 'button';
+
+            button.className =
+                'gear-badge' + (selected ? ' equipped' : '');
+
+            button.textContent = unlocked
+                ? (selected ? '✓ ' : '') + item.name
+                : item.name + ' · ' + item.xp + ' XP';
+
+            button.disabled =
+                !unlocked ||
+                !editingEquipment ||
+                equipmentBusy;
+
+            button.setAttribute('aria-pressed', String(selected));
+
+            button.addEventListener('click', () => {
+                if (equipmentBusy || !editingEquipment) return;
+
+                if (pendingEquipment.has(id)) {
+                    pendingEquipment.delete(id);
+                } else {
+                    pendingEquipment.add(id);
+                }
+
+                applyEquipment();
+                renderEquipment();
+            });
+
+            group.appendChild(button);
+        }
+
+        section.append(heading, group);
+        container.appendChild(section);
+    }
+}
+
+function updateCharacterVisuals(state) {
+    const xp = state.xp || {};
+
+    unlockedEquipment = new Set(
+        (state.available_equipment || []).filter(id => EQUIPMENT[id])
+    );
+
+    savedEquipment = new Set(
+        (state.equipped_items || []).filter(id => {
+            return unlockedEquipment.has(id);
+        })
+    );
+
+    if (!editingEquipment) {
+        pendingEquipment = new Set(savedEquipment);
+    } else {
+        pendingEquipment = new Set(
+            [...pendingEquipment].filter(id => {
+                return unlockedEquipment.has(id);
+            })
+        );
+    }
+
+    applyEquipment();
+    renderEquipment();
+
+    for (const category of [
+        'general',
+        'fitness',
+        'coding',
+        'creative'
+    ]) {
+        const value = xp[category] || 0;
+
+        const bar = document.getElementById(
+            category + '-xp-bar'
+        );
+
+        const label = document.getElementById(
+            category + '-xp-text'
+        );
+
+        const next = [10, 30, 60].find(threshold => {
+            return threshold > value;
         });
-        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-        const stateData = await response.json();
-        updateCharacterVisuals(stateData);
-        return stateData;
-    } catch (err) {
-        console.warn(`Evolution API unavailable (${url}). Is \`python app.py\` running?`, err);
+
+        if (bar) {
+            const percentage = category === 'general'
+                ? value % 30 / 30 * 100
+                : Math.min(value / 60, 1) * 100;
+
+            bar.style.width = percentage + '%';
+        }
+
+        if (label) {
+            if (category === 'general') {
+                label.textContent = (value % 30) + ' / 30 XP';
+            } else if (next) {
+                label.textContent = value + ' / ' + next + ' XP';
+            } else {
+                label.textContent = value + ' XP ★';
+            }
+        }
+    }
+
+    const trait = state.dominant_trait || 'general';
+    const traitLabel = document.getElementById('dominant-trait');
+
+    if (traitLabel) {
+        traitLabel.textContent =
+            'Dominant trait: ' +
+            trait[0].toUpperCase() +
+            trait.slice(1);
+    }
+
+    const stage = document.querySelector('.character-stage');
+
+    if (stage) {
+        stage.dataset.trait = trait;
+    }
+
+    const list = document.getElementById('unlocked-gear-list');
+
+    if (list) {
+        list.replaceChildren();
+
+        for (const id of unlockedEquipment) {
+            if (!EQUIPMENT[id]) continue;
+
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.textContent = EQUIPMENT[id].name;
+
+            list.appendChild(badge);
+        }
+    }
+
+    if (typeof state.coins === 'number') {
+        const shop = document.getElementById('shop-coins');
+        const wallet = document.getElementById('wallet-balance');
+
+        if (shop) {
+            shop.textContent = state.coins;
+        }
+
+        if (wallet) {
+            wallet.textContent = state.coins + ' coins';
+        }
+    }
+}
+
+async function loadCharacterState() {
+    try {
+        const response = await fetch('/api/character-state');
+
+        if (!response.ok) {
+            throw new Error('Could not load hero progress');
+        }
+
+        const state = await response.json();
+        updateCharacterVisuals(state);
+
+        return state;
+    } catch (error) {
+        const message = document.getElementById('unlock-message');
+
+        if (message) {
+            message.textContent =
+                'Could not load hero progress. ' +
+                'Check that the server is running and refresh.';
+
+            message.classList.add('visible');
+        }
+
+        console.error(error);
         return null;
     }
 }
 
-function loadCharacterState() {
-    return evolutionRequest('/api/character-state');
-}
-
-function completeEvolutionTask(category, taskTitle) {
-    return evolutionRequest('/api/complete-task', {
-        method: 'POST',
-        body: JSON.stringify({ category, title: taskTitle }),
-    });
-}
-
-// Demo helper, e.g. resetEvolutionState('demo') from the browser console.
-function resetEvolutionState(mode = 'reset') {
-    return evolutionRequest('/api/reset-state', {
-        method: 'POST',
-        body: JSON.stringify({ mode }),
-    });
-}
-
-function updateCharacterVisuals(stateData) {
-    const xp = stateData.xp || {};
-        const generalXp = xp.general || 0;
-    const generalBar = document.getElementById('general-xp-bar');
-    const generalText = document.getElementById('general-xp-text');
-
-    if (generalBar) {
-        generalBar.style.width = `${(generalXp % 30) / 30 * 100}%`;
-        generalBar.style.background = '#f5b942';
-    }
-
-    if (generalText) {
-        generalText.textContent =
-            `${generalXp % 30} / 30 XP`;
-    }
-    const unlocked = new Set(stateData.unlocked_items || []);
-    const newlyUnlocked = stateData.newly_unlocked || [];
-
-    Object.values(EVOLUTION_TIERS).flat().forEach(([, itemId]) => {
-        const layer = document.getElementById(`item-${itemId}`);
-        if (!layer) return;
-        layer.classList.toggle('unlocked', unlocked.has(itemId));
-        if (newlyUnlocked.includes(itemId)) {
-            layer.classList.remove('just-unlocked');
-            void layer.offsetWidth; // restart the pop animation
-            layer.classList.add('just-unlocked');
-        }
-    });
-
-    const avatar = document.getElementById('base-avatar');
-    if (avatar) {
-        const targetSrc = unlocked.has('muscle_upgrade') ? avatar.dataset.buffSrc : avatar.dataset.baseSrc;
-        if (avatar.getAttribute('src') !== targetSrc) avatar.setAttribute('src', targetSrc);
-    }
-
-    Object.entries(EVOLUTION_TIERS).forEach(([category, tiers]) => {
-        const value = xp[category] || 0;
-        const bar = document.getElementById(`${category}-xp-bar`);
-        const text = document.getElementById(`${category}-xp-text`);
-        if (bar) bar.style.width = `${Math.min(value / XP_BAR_MAX, 1) * 100}%`;
-        if (text) {
-            const nextTier = tiers.find(([threshold]) => value < threshold);
-            text.textContent = nextTier ? `${value} / ${nextTier[0]} XP` : `${value} XP ★`;
-        }
-    });
-
-    const trait = stateData.dominant_trait || 'general';
-    const stage = document.querySelector('.character-stage');
-    if (stage) stage.dataset.trait = trait;
-    const traitLabel = document.getElementById('dominant-trait');
-    if (traitLabel) traitLabel.textContent = `Dominant trait: ${capitalize(trait)}`;
-
-    const gearList = document.getElementById('unlocked-gear-list');
-    if (gearList) {
-        gearList.replaceChildren(...[...unlocked].map((itemId) => {
-            const badge = document.createElement('span');
-            badge.className = 'badge';
-            badge.textContent = GEAR_LABELS[itemId] || itemId;
-            return badge;
-        }));
-    }
-
-    if (newlyUnlocked.length) {
-        showUnlockMessage(`New gear unlocked: ${newlyUnlocked.map((id) => GEAR_LABELS[id] || id).join(', ')}!`);
-    }
-}
-
-function showUnlockMessage(message) {
-    const el = document.getElementById('unlock-message');
-    if (!el) return;
-    el.textContent = message;
-    el.classList.add('visible');
-    clearTimeout(unlockMessageTimer);
-    unlockMessageTimer = setTimeout(() => el.classList.remove('visible'), 3000);
-}
-
-// Hide layers whose art hasn't been added to static/images/ yet instead of showing broken icons.
-function watchStageArt() {
-    const stage = document.querySelector('.character-stage');
-    if (!stage) return;
-    stage.querySelectorAll('img').forEach((img) => {
-        const markMissing = () => {
-            img.classList.add('missing-art');
-            if (img.id === 'base-avatar') stage.classList.remove('has-avatar-art');
-        };
-        const markLoaded = () => {
-            img.classList.remove('missing-art');
-            if (img.id === 'base-avatar') stage.classList.add('has-avatar-art');
-        };
-        img.addEventListener('error', markMissing);
-        img.addEventListener('load', markLoaded);
-        if (img.complete) (img.naturalWidth ? markLoaded : markMissing)();
-    });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    watchStageArt();
-    loadCharacterState();
-});
+document.addEventListener('DOMContentLoaded', loadCharacterState);

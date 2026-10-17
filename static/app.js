@@ -32,72 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let resetting = false;
     const pendingTasks = new Set();
 
-    const rig = document.querySelector('.character-rig');
-    const stage = document.querySelector('.character-stage');
-    let cheerTimer = null;
-    let gearResetTimer = null;
-
-    if (rig && stage) {
-        new MutationObserver(records => {
-            records.forEach(record => {
-                const target = record.target;
-                const oldValues = (record.oldValue || '').split(/\s+/);
-
-                if (
-                    target.classList.contains('gear-layer') &&
-                    target.classList.contains('just-unlocked') &&
-                    !oldValues.includes('just-unlocked')
-                ) {
-                    const newlyUnlockedItem = target;
-
-                    document.querySelectorAll('.gear-layer').forEach(gear => {
-                        if (gear !== newlyUnlockedItem) {
-                            gear.classList.remove('just-unlocked');
-                        }
-                    });
-
-                    if (rig.classList.contains('item-get')) return;
-
-                    rig.classList.remove('item-get');
-                    void rig.offsetWidth;
-                    rig.classList.add('item-get');
-
-                    const allGears = document.querySelectorAll('.gear-layer');
-
-                    allGears.forEach(gear => {
-                        if (gear !== newlyUnlockedItem) {
-                            gear.style.setProperty('opacity', '0', 'important');
-                            gear.style.setProperty(
-                                'visibility',
-                                'hidden',
-                                'important'
-                            );
-                        }
-                    });
-
-                    clearTimeout(cheerTimer);
-                    clearTimeout(gearResetTimer);
-
-                    cheerTimer = setTimeout(() => {
-                        rig.classList.remove('item-get');
-                    }, 2700);
-
-                    gearResetTimer = setTimeout(() => {
-                        allGears.forEach(gear => {
-                            gear.style.removeProperty('opacity');
-                            gear.style.removeProperty('visibility');
-                        });
-                    }, 2200);
-                }
-            });
-        }).observe(stage, {
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['class'],
-            attributeOldValue: true
-        });
-    }
-
     async function apiRequest(url, options = {}) {
         const response = await fetch(url, {
             ...options,
@@ -392,6 +326,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateCustomizationControls() {
         const busy = loadingCustomization || savingCustomization;
+        setEquipmentBusy(busy);
+        if (resetBtn) resetBtn.disabled = busy || resetting;
 
         if (customizeBtn) customizeBtn.disabled = busy;
         if (closeModalBtn) closeModalBtn.disabled = busy;
@@ -425,6 +361,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
             }
 
+            const equipmentState = await apiRequest('/api/character-state');
+            updateCharacterVisuals(equipmentState);
             currentGender = player.character_model;
             pendingGender = currentGender;
             updateAvatarSprite(currentGender);
@@ -444,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const loaded = await loadCustomization();
 
         if (loaded) {
+            beginEquipmentEdit();
             customizerModal?.classList.remove('hidden');
         }
     });
@@ -452,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (loadingCustomization || savingCustomization) return;
 
         pendingGender = currentGender;
+        cancelEquipmentEdit();
         updateCustomizationControls();
         customizerModal?.classList.add('hidden');
     });
@@ -483,10 +423,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await apiRequest('/api/player/customization', {
                 method: 'PATCH',
                 body: JSON.stringify({
-                    character_model: pendingGender
+                    character_model: pendingGender,
+                    equipped_items: selectedEquipment()
                 })
             });
 
+            acceptEquipment(result.equipped_items);
             currentGender = result.character_model;
             pendingGender = currentGender;
             updateAvatarSprite(currentGender);

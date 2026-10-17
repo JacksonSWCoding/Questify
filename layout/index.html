@@ -12,7 +12,7 @@
         rel="stylesheet"
     >
 
-    <link rel="stylesheet" href="/static/style.css?v=5">
+    <link rel="stylesheet" href="/static/style.css?v=equipment1">
     <link rel="stylesheet" href="/static/shop.css">
     <script src="/static/shop.js" defer></script>
 </head>
@@ -62,6 +62,15 @@
                             id="outfit-layer"
                             class="lpc-sprite sprite-outfit-male"
                         ></div>
+                        <div id="item-black_shoes" class="gear-layer lpc-sprite"></div>
+                        <div id="item-headband" class="gear-layer lpc-sprite"></div>
+                        <div id="item-dagger" class="gear-layer lpc-sprite"></div>
+                        <div id="item-glasses" class="gear-layer lpc-sprite"></div>
+                        <div id="item-cape" class="gear-layer lpc-sprite"></div>
+                        <div id="item-wand" class="gear-layer lpc-sprite"></div>
+                        <div id="item-cap" class="gear-layer lpc-sprite"></div>
+                        <div id="item-bauldron" class="gear-layer lpc-sprite"></div>
+                        <div id="item-crystal" class="gear-layer lpc-sprite"></div>
                     </div>
                 </div>
 
@@ -203,8 +212,10 @@
     </div>
 
     <div id="customizer-modal" class="modal-overlay hidden">
-        <div class="modal-card">
-            <h2>Character Customization</h2>
+        <div class="modal-card wide-modal">
+            <h2>Character Customization &amp; Equipment</h2>
+            <p class="equipment-note">Select unlocked gear, then Save Changes. Cancel restores your saved selection.</p>
+            <div id="equipment-inventory" class="inventory-col"></div>
 
             <div class="custom-group">
                 <label>Base Model:</label>
