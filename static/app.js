@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         pendingTasks.add(id);
-        checkbox.disabled = true;
+        renderTasks();
 
         let result;
 
@@ -116,6 +116,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 scalar: 0.8,
                 disableForReducedMotion: true
             });
+        }
+    }
+
+    async function deleteTask(id) {
+        if (resetting || pendingTasks.has(id)) return;
+
+        if (!confirm('Delete this task without earning XP?')) return;
+
+        pendingTasks.add(id);
+        renderTasks();
+
+        try {
+            await apiRequest(`/api/tasks/${id}`, {
+                method: 'DELETE'
+            });
+
+            tasks = tasks.filter(task => task.id !== id);
+        } catch (error) {
+            alert(`Could not delete task: ${error.message}`);
+        } finally {
+            pendingTasks.delete(id);
+            renderTasks();
         }
     }
 
@@ -168,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
-            checkbox.checked = pendingTasks.has(task.id);
             checkbox.disabled = resetting || pendingTasks.has(task.id);
             checkbox.setAttribute('aria-label', `Complete ${task.title}`);
             checkbox.addEventListener('change', event => {
@@ -182,9 +203,17 @@ document.addEventListener('DOMContentLoaded', () => {
             tag.className = `badge badge-${task.category}`;
             tag.textContent = formatCategory(task.category);
 
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.setAttribute('aria-label', `Delete ${task.title}`);
+            deleteBtn.disabled = resetting || pendingTasks.has(task.id);
+            deleteBtn.addEventListener('click', () => deleteTask(task.id));
+
             li.appendChild(checkbox);
             li.appendChild(textSpan);
             li.appendChild(tag);
+            li.appendChild(deleteBtn);
             taskList.appendChild(li);
         });
     }

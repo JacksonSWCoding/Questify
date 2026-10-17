@@ -279,6 +279,32 @@ def reset_state():
 
     return character_state()
 
+@app.delete("/api/tasks/<int:task_id>")
+def delete_task(task_id):
+    with sqlite3.connect(DATABASE) as connection:
+        result = connection.execute(
+            "DELETE FROM tasks WHERE id = ? AND completed = 0",
+            (task_id,)
+        )
+
+        if result.rowcount == 0:
+            task = connection.execute(
+                "SELECT id FROM tasks WHERE id = ?",
+                (task_id,)
+            ).fetchone()
+
+            if task is None:
+                return jsonify({"error": "Task not found"}), 404
+
+            return jsonify({
+                "error": "Completed tasks cannot be deleted"
+            }), 409
+
+    return jsonify({
+        "message": "Task deleted",
+        "id": task_id
+    })
+
 init_db()
 
 if __name__ == '__main__':
