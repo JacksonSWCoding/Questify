@@ -67,6 +67,13 @@ def init_db():
                 "INTEGER NOT NULL DEFAULT 0 CHECK (coins >= 0)"
             )
 
+        if "character_model" not in columns:
+            connection.execute(
+                "ALTER TABLE player ADD COLUMN character_model "
+                "TEXT NOT NULL DEFAULT 'male' "
+                "CHECK (character_model IN ('male', 'female'))"
+            )
+
         connection.execute("""
             INSERT OR IGNORE INTO player (id, xp)
             VALUES (1, 0)
@@ -224,7 +231,7 @@ def get_player():
         connection.row_factory = sqlite3.Row
 
         player = connection.execute(
-            "SELECT xp, coins FROM player WHERE id = 1"
+            "SELECT xp, coins, character_model FROM player WHERE id = 1"
         ).fetchone()
 
     xp = player["xp"]
@@ -245,10 +252,36 @@ def get_player():
     return jsonify({
         "xp": xp,
         "coins": player["coins"],
+        "character_model": player["character_model"],
         "level": level,
         "xp_into_level": xp % 30,
         "xp_per_level": 30,
         "unlocked_gear": unlocked_gear
+    })
+
+
+@app.patch("/api/player/customization")
+def update_customization():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Send a JSON object"}), 400
+
+    character_model = data.get("character_model")
+
+    if character_model not in ("male", "female"):
+        return jsonify({
+            "error": "Character model must be male or female"
+        }), 400
+
+    with sqlite3.connect(DATABASE) as connection:
+        connection.execute(
+            "UPDATE player SET character_model = ? WHERE id = 1",
+            (character_model,)
+        )
+
+    return jsonify({
+        "character_model": character_model
     })
 
 
