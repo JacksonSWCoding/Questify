@@ -358,6 +358,54 @@ def reset_state():
 
     return character_state()
 
+@app.patch("/api/tasks/<int:task_id>")
+def edit_task(task_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Send a JSON object"}), 400
+
+    title = data.get("title")
+    category = data.get("category")
+
+    if not isinstance(title, str) or not title.strip():
+        return jsonify({"error": "Task title is required"}), 400
+
+    if category not in ("general", "fitness", "coding", "creative"):
+        return jsonify({"error": "Invalid category"}), 400
+
+    title = title.strip()
+
+    with sqlite3.connect(DATABASE) as connection:
+        result = connection.execute(
+            """
+            UPDATE tasks
+            SET title = ?, category = ?
+            WHERE id = ? AND completed = 0
+            """,
+            (title, category, task_id)
+        )
+
+        if result.rowcount == 0:
+            task = connection.execute(
+                "SELECT id FROM tasks WHERE id = ?",
+                (task_id,)
+            ).fetchone()
+
+            if task is None:
+                return jsonify({"error": "Task not found"}), 404
+
+            return jsonify({
+                "error": "Completed tasks cannot be edited"
+            }), 409
+
+    return jsonify({
+        "id": task_id,
+        "title": title,
+        "category": category,
+        "completed": False
+    })
+
 
 @app.delete("/api/tasks/<int:task_id>")
 def delete_task(task_id):

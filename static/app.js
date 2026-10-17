@@ -207,6 +207,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function editTask(id) {
+        if (resetting || pendingTasks.has(id)) return;
+
+        const task = tasks.find(task => task.id === id);
+        if (!task) return;
+
+        const enteredTitle = prompt('Edit task title:', task.title);
+        if (enteredTitle === null) return;
+
+        const title = enteredTitle.trim();
+
+        if (!title) {
+            alert('Task title is required.');
+            return;
+        }
+
+        const enteredCategory = prompt(
+            'Category: general, fitness, coding, or creative',
+            task.category
+        );
+
+        if (enteredCategory === null) return;
+
+        const category = enteredCategory.trim().toLowerCase();
+
+        if (!['general', 'fitness', 'coding', 'creative'].includes(category)) {
+            alert('Choose general, fitness, coding, or creative.');
+            return;
+        }
+
+        pendingTasks.add(id);
+        renderTasks();
+
+        try {
+            const updatedTask = await apiRequest(`/api/tasks/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ title, category })
+            });
+
+            tasks = tasks.map(task => {
+                return task.id === id ? updatedTask : task;
+            });
+        } catch (error) {
+            alert(`Could not edit task: ${error.message}`);
+        } finally {
+            pendingTasks.delete(id);
+            renderTasks();
+        }
+    }
+
     async function deleteTask(id) {
         if (resetting || pendingTasks.has(id)) return;
 
@@ -292,6 +342,13 @@ document.addEventListener('DOMContentLoaded', () => {
             tag.className = `badge badge-${task.category}`;
             tag.textContent = formatCategory(task.category);
 
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.textContent = 'Edit';
+            editBtn.setAttribute('aria-label', `Edit ${task.title}`);
+            editBtn.disabled = resetting || pendingTasks.has(task.id);
+            editBtn.addEventListener('click', () => editTask(task.id));
+
             const deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
             deleteBtn.textContent = 'Delete';
@@ -302,6 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             li.appendChild(checkbox);
             li.appendChild(textSpan);
             li.appendChild(tag);
+            li.appendChild(editBtn);
             li.appendChild(deleteBtn);
             taskList.appendChild(li);
         });
