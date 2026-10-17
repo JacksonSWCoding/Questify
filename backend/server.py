@@ -259,6 +259,26 @@ def character_state():
     })
 
 
+@app.post("/api/reset-state")
+def reset_state():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Send a JSON object"}), 400
+
+    if data.get("mode") != "reset":
+        return jsonify({"error": "Only reset mode is supported"}), 400
+
+    with sqlite3.connect(DATABASE) as connection:
+        connection.execute(
+            "UPDATE player SET xp = 0 WHERE id = 1"
+        )
+        connection.execute(
+            "UPDATE category_progress SET xp = 0"
+        )
+
+    return character_state()
+
 init_db()
 
 if __name__ == '__main__':

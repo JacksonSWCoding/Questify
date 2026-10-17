@@ -1,193 +1,323 @@
+/* =========================================================
+   Questify — RPG theme
+   Sections: tokens, base, layout, frames, task panel,
+             quest cards, badges, character panel
+   ========================================================= */
+
+:root {
+    --bg-deep: #080b12;
+    --stone-top: #232a3b;
+    --stone-bottom: #151a25;
+    --stone-border: #3b465a;
+    --gold: #f59e0b;
+    --gold-glow: #fbbf24;
+    --parchment: #e8d9b0;
+    --parchment-edge: #9e8452;
+    --ink: #2b1d0e;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --blue: #3b82f6;
+    --blue-deep: #1d4ed8;
+    --input-bg: #0f172a;
+    --input-border: #475569;
+}
+
 * {
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-    background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%);
-    min-height: 100vh;
     margin: 0;
-    padding: 30px 20px;
+    padding: 30px 20px 50px;
+    min-height: 100vh;
+    color: var(--text);
+    background:
+        radial-gradient(ellipse at 50% -10%, rgba(139, 92, 246, 0.22) 0%, transparent 55%),
+        radial-gradient(ellipse at 90% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+        linear-gradient(160deg, #080b12 0%, #141826 100%);
 }
 
+/* ---------- Hero ---------- */
+.hero-header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 32px;
+}
+
+.game-title {
+    margin: 0 0 4px;
+    font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+    font-size: 2.8rem;
+    letter-spacing: 2px;
+    background: linear-gradient(180deg, #fde68a 0%, #f59e0b 55%, #b45309 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.35));
+}
+
+.game-subtitle {
+    margin: 0;
+    color: #a78bfa;
+    font-family: 'Cinzel', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+/* ---------- Layout ---------- */
 .app-container {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
     gap: 24px;
-    max-width: 1050px;
+    max-width: 1100px;
     margin: 0 auto;
+    align-items: start;
 }
 
-.task-panel, .character-panel {
-    background: #ffffff;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    flex: 1;
+@media (max-width: 800px) {
+    .app-container {
+        grid-template-columns: 1fr;
+    }
 }
 
+/* ---------- Stone frames ---------- */
+.task-panel,
+.character-panel {
+    position: relative;
+    padding: 22px;
+    border: 3px solid var(--stone-border);
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--stone-top) 0%, var(--stone-bottom) 100%);
+    box-shadow:
+        inset 0 0 18px rgba(0, 0, 0, 0.75),
+        0 12px 30px rgba(0, 0, 0, 0.65);
+}
+
+/* gold corner studs */
+.task-panel::before,
+.task-panel::after,
+.character-panel::before,
+.character-panel::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fde68a, #b45309);
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+.task-panel::before,
+.character-panel::before { top: 8px; left: 8px; }
+.task-panel::after,
+.character-panel::after { top: 8px; right: 8px; }
+
+/* Rune headers */
 h2 {
-    margin-top: 0;
-    color: #2c3e50;
-    font-size: 1.5rem;
-    border-bottom: 2px solid #eef2f3;
-    padding-bottom: 10px;
+    margin: 0 0 18px;
+    padding: 8px 0;
+    text-align: center;
+    font-family: 'Cinzel', Georgia, serif;
+    font-size: 1.15rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold-glow);
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.45);
+    border-top: 2px solid var(--gold);
+    border-bottom: 2px solid var(--gold);
+    background: linear-gradient(90deg, transparent 0%, rgba(30, 37, 51, 0.9) 50%, transparent 100%);
 }
 
+/* ---------- Task panel: input row ---------- */
 .input-group {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 20px;
+    padding: 14px;
+    background: rgba(8, 11, 18, 0.45);
+    border: 1px solid var(--stone-border);
+    border-radius: 10px;
 }
 
 input[type="text"] {
-    flex: 1;
+    flex: 1 1 180px;
     padding: 10px 14px;
-    border: 1.5px solid #dcdfe6;
-    border-radius: 6px;
+    background: var(--input-bg);
+    border: 1.5px solid var(--input-border);
+    border-radius: 8px;
     font-size: 0.95rem;
+    color: var(--text);
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-input[type="text"]:focus {
-    border-color: #3b82f6;
+input[type="text"]::placeholder {
+    color: #7c8aa0;
+}
+
+input[type="text"]:focus,
+select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
 }
 
 select {
     padding: 10px;
-    border: 1.5px solid #dcdfe6;
-    border-radius: 6px;
-    background: white;
+    background: var(--input-bg);
+    border: 1.5px solid var(--input-border);
+    border-radius: 8px;
+    color: var(--text);
     cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 button {
-    background-color: #3b82f6;
-    color: white;
-    border: none;
     padding: 10px 18px;
-    border-radius: 6px;
-    font-weight: 600;
+    border: 1px solid #60a5fa;
+    border-radius: 8px;
+    background: linear-gradient(180deg, var(--blue) 0%, var(--blue-deep) 100%);
+    color: #fff;
+    font-family: 'Cinzel', Georgia, serif;
+    font-weight: 700;
+    letter-spacing: 0.5px;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.4);
+    transition: filter 0.2s, transform 0.1s;
 }
 
 button:hover {
-    background-color: #2563eb;
+    filter: brightness(1.15);
+    transform: translateY(-1px);
 }
 
 button:active {
-    transform: scale(0.98);
+    transform: translateY(0);
 }
 
-ul {
+/* ---------- Quest cards (parchment) ---------- */
+#task-list {
     list-style: none;
-    padding: 0;
     margin: 0;
+    padding: 0;
+    max-height: 520px;
+    overflow-y: auto;
 }
 
-li {
+#task-list:empty::before {
+    content: 'No active quests. Add one above to begin your adventure!';
+    display: block;
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--muted);
+    font-style: italic;
+}
+
+#task-list li {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 14px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    margin-bottom: 10px;
+    padding: 13px 16px;
+    background: linear-gradient(180deg, #efe1ba 0%, var(--parchment) 100%);
+    border: 2px solid var(--parchment-edge);
     border-radius: 8px;
-    margin-bottom: 8px;
-    transition: all 0.2s ease;
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+    transition: transform 0.15s, box-shadow 0.15s;
 }
 
-li:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+#task-list li:hover {
+    transform: translateX(3px);
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.55), 0 0 10px rgba(245, 158, 11, 0.25);
 }
 
-/* Circular Checkbox Buttons */
-li input[type="checkbox"] {
+/* Round rune checkbox */
+#task-list li input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    border: 2px solid #94a3b8;
-    border-radius: 50%;
-    outline: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
     position: relative;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    border: 2px solid #78350f;
+    border-radius: 50%;
+    background: #fdf6e3;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
 }
 
-li input[type="checkbox"]:hover {
-    border-color: #3b82f6;
-    background-color: #eff6ff;
+#task-list li input[type="checkbox"]:hover {
+    border-color: var(--gold);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
 }
 
-li input[type="checkbox"]:checked {
-    background-color: #3b82f6;
-    border-color: #3b82f6;
+#task-list li input[type="checkbox"]:checked {
+    background: #15803d;
+    border-color: #166534;
 }
 
-/* Inner Checkmark Icon */
-li input[type="checkbox"]:checked::after {
+#task-list li input[type="checkbox"]:checked::after {
     content: '';
     position: absolute;
-    top: 3px;
-    left: 6px;
-    width: 4px;
-    height: 8px;
-    border: solid white;
+    top: 4px;
+    left: 8px;
+    width: 5px;
+    height: 10px;
+    border: solid #fff;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
 
-/* Category Badges */
+/* ---------- Category badges ---------- */
 .badge {
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 12px;
     margin-left: auto;
+    padding: 3px 10px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
-.badge-general { background: #e2e8f0; color: #475569; }
-.badge-fitness { background: #dcfce7; color: #15803d; }
-.badge-coding  { background: #dbeafe; color: #1d4ed8; }
-.badge-creative { background: #f3e8ff; color: #6b21a8; }
+.badge-general  { background: #cbd5e1; color: #334155; border-color: #94a3b8; }
+.badge-fitness  { background: #bbf7d0; color: #166534; border-color: #4ade80; }
+.badge-coding,
+.badge-tech     { background: #bfdbfe; color: #1e40af; border-color: #60a5fa; }
+.badge-creative { background: #e9d5ff; color: #6b21a8; border-color: #c084fc; }
 
-/* ---------- Category Evolution ---------- */
+/* =========================================================
+   CHARACTER PANEL
+   NOTE: your teammates own this section. If they already have
+   rules for .gear-layer / .unlocked-gear etc. on their branch,
+   keep theirs and only keep the frame + XP bar styling here.
+   ========================================================= */
+
+#character-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
 
 .character-stage {
     position: relative;
     width: 100%;
     max-width: 280px;
-    aspect-ratio: 1 / 1;
-    margin: 0 auto 12px;
-    border-radius: 8px;
-    background-color: #eef2f7;
-    overflow: hidden;
-    transition: background-color 0.4s ease;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, rgba(15, 23, 42, 0.9) 70%);
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 22px rgba(59, 130, 246, 0.35), inset 0 0 20px rgba(0, 0, 0, 0.7);
 }
 
-.character-stage[data-trait="fitness"] { background-color: #fdecea; }
-.character-stage[data-trait="coding"] { background-color: #e8f0fe; }
-.character-stage[data-trait="creative"] { background-color: #f3e8fd; }
-
-/* Placeholder hero until static/images/base.png exists */
-.character-stage::before {
-    content: "🧍";
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 96px;
-}
-
-.character-stage.has-avatar-art::before {
-    content: none;
-}
-
+/* layers stack in DOM order */
 .character-stage img {
     position: absolute;
     inset: 0;
@@ -196,53 +326,24 @@ li input[type="checkbox"]:checked::after {
     object-fit: contain;
 }
 
-.character-stage img.missing-art {
-    visibility: hidden;
-}
-
-.gear-layer {
-    opacity: 0;
-    transform: scale(0.9);
-    transition: opacity 0.4s ease, transform 0.4s ease;
-}
-
-.gear-layer.unlocked {
-    opacity: 1;
-    transform: none;
-}
-
-.gear-layer.just-unlocked {
-    animation: gear-pop 0.6s ease;
-}
-
-@keyframes gear-pop {
-    0% { transform: scale(0.6); }
-    60% { transform: scale(1.15); }
-    100% { transform: scale(1); }
-}
-
 .dominant-trait {
-    text-align: center;
-    font-weight: bold;
-    margin: 0 0 8px;
+    margin: 0;
+    font-family: 'Cinzel', Georgia, serif;
+    font-weight: 700;
+    color: var(--gold-glow);
+    letter-spacing: 1px;
 }
 
 .unlock-message {
+    min-height: 1.2em;
+    margin: 0;
     text-align: center;
-    margin: 0 0 12px;
-    padding: 6px;
-    border-radius: 4px;
-    background: #e6f4ea;
-    color: #137333;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.unlock-message.visible {
-    opacity: 1;
+    font-size: 0.85rem;
+    color: #a78bfa;
 }
 
 .xp-bars {
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -250,51 +351,135 @@ li input[type="checkbox"]:checked::after {
 
 .xp-row {
     display: grid;
-    grid-template-columns: 90px 1fr 80px;
+    grid-template-columns: 84px 1fr 72px;
     align-items: center;
     gap: 8px;
-    font-size: 0.9em;
+    font-size: 0.78rem;
+}
+
+.xp-label {
+    color: var(--text);
+    font-weight: 600;
 }
 
 .xp-track {
-    position: relative;
-    height: 10px;
-    background: #e0e0e0;
-    border-radius: 5px;
+    height: 14px;
     overflow: hidden;
-}
-
-/* Tick marks at the 10 XP and 30 XP unlocks (bar spans 0-60 XP) */
-.xp-track::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(to right, transparent 16.2%, #fff 16.2%, #fff 17.1%, transparent 17.1%),
-        linear-gradient(to right, transparent 49.5%, #fff 49.5%, #fff 50.5%, transparent 50.5%);
-    pointer-events: none;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 7px;
 }
 
 .xp-fill {
     height: 100%;
     width: 0;
-    border-radius: 5px;
-    transition: width 0.6s ease;
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+    transition: width 0.4s ease;
 }
 
-#fitness-xp-bar { background: #e8453c; }
-#coding-xp-bar { background: #1a73e8; }
-#creative-xp-bar { background: #a142f4; }
+#creative-xp-bar { background: linear-gradient(90deg, #7c3aed, #c084fc); }
+#fitness-xp-bar  { background: linear-gradient(90deg, #15803d, #4ade80); }
 
 .xp-text {
     text-align: right;
-    color: #555;
+    color: var(--muted);
     font-variant-numeric: tabular-nums;
 }
 
 .unlocked-gear {
+    width: 100%;
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 6px;
-    margin-top: 14px;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+/* gear chips reuse .badge, so cancel the quest-card auto margin */
+.unlocked-gear .badge {
+    margin-left: 0;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--gold-glow);
+    border-color: rgba(245, 158, 11, 0.45);
+}
+
+/* ---------- Gear unlock states (toggled by evolution.js) ---------- */
+/* hidden until the matching item is unlocked */
+.gear-layer {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.gear-layer.unlocked {
+    opacity: 1;
+}
+
+.gear-layer.just-unlocked {
+    animation: gearPop 0.7s ease-out;
+}
+
+@keyframes gearPop {
+    0%   { transform: scale(0.85); filter: brightness(2.4) drop-shadow(0 0 14px #fbbf24); }
+    60%  { transform: scale(1.06); }
+    100% { transform: scale(1);    filter: none; }
+}
+
+/* art file not added yet: hide instead of showing a broken icon */
+.character-stage img.missing-art {
+    display: none;
+}
+
+/* "New gear unlocked" toast text fades in and out */
+.unlock-message {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.unlock-message.visible {
+    opacity: 1;
+    text-shadow: 0 0 8px rgba(167, 139, 250, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gear-layer.just-unlocked { animation: none; }
+}
+
+/* ---------- Hand-held item fit ----------
+   Each gear PNG is a full-size 1024x1024 layer with the item drawn in a
+   fixed spot, so we nudge each one onto the hero's hand. The individual
+   translate / rotate properties are used (instead of transform) so they
+   don't fight the unlock "pop" animation, which animates transform.
+   Percentages are relative to the layer, i.e. the whole stage.
+   To fine-tune: edit these values live in DevTools, then copy them back. */
+
+/* dumbbell bar was ~68px right of the hand: move it left and up a touch */
+#item-dumbbells {
+    translate: -6.64% -1.46%;
+}
+
+/* brush was gripped by the bristles: slide the handle into the hand and
+   tilt it upright. transform-origin is the grip point on the handle. */
+#item-paintbrush {
+    transform-origin: 25.98% 69.14%;
+    rotate: -30deg;
+    translate: 7.32% -5.57%;
+}
+
+/* ---------- Reset button (secondary / destructive) ---------- */
+.btn-reset {
+    margin-top: 6px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    background: transparent;
+    color: #fca5a5;
+    border: 1px solid rgba(248, 113, 113, 0.55);
+    box-shadow: none;
+}
+
+.btn-reset:hover {
+    background: rgba(127, 29, 29, 0.45);
+    filter: none;
 }

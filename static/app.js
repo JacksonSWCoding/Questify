@@ -3,9 +3,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const categorySelect = document.getElementById('task-category');
     const addBtn = document.getElementById('add-btn');
     const taskList = document.getElementById('task-list');
+    const resetBtn = document.getElementById('reset-xp-btn');
 
     let tasks = [];
     let addingTask = false;
+    let resetting = false;
     const pendingTasks = new Set();
 
     async function apiRequest(url, options = {}) {
@@ -44,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = taskInput.value.trim();
         const category = categorySelect.value;
 
-        if (!title || addingTask || addBtn.disabled) return;
+        if (!title || addingTask || resetting || addBtn.disabled) return;
 
         addingTask = true;
         addBtn.disabled = true;
@@ -72,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function completeTask(id, event) {
-        if (pendingTasks.has(id)) return;
+        if (pendingTasks.has(id) || resetting) return;
 
         const checkbox = event.target;
         const rect = checkbox.getBoundingClientRect();
@@ -97,10 +99,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        pendingTasks.delete(id);
         tasks = tasks.filter(task => task.id !== id);
         renderTasks();
-        await loadCharacterState();
+
+        try {
+            await loadCharacterState();
+        } finally {
+            pendingTasks.delete(id);
+        }
 
         if (result.xp_awarded > 0 && typeof window.confetti === 'function') {
             window.confetti({
@@ -110,6 +116,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 scalar: 0.8,
                 disableForReducedMotion: true
             });
+        }
+    }
+
+    async function resetProgress() {
+        if (resetting) return;
+
+        if (pendingTasks.size > 0 || addingTask) {
+            alert('Wait for the current task update to finish.');
+            return;
+        }
+
+        const confirmed = confirm(
+            'Reset all hero XP and unlocked gear? ' +
+            'Tasks will stay, and completed tasks will remain completed.'
+        );
+
+        if (!confirmed) return;
+
+        resetting = true;
+        resetBtn.disabled = true;
+        addBtn.disabled = true;
+        renderTasks();
+
+        try {
+            await apiRequest('/api/reset-state', {
+                method: 'POST',
+                body: JSON.stringify({ mode: 'reset' })
+            });
+
+            await loadCharacterState();
+        } catch (error) {
+            alert(`Could not reset progress: ${error.message}`);
+        } finally {
+            resetting = false;
+            resetBtn.disabled = false;
+            addBtn.disabled = false;
+            renderTasks();
         }
     }
 
@@ -126,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.checked = pendingTasks.has(task.id);
-            checkbox.disabled = pendingTasks.has(task.id);
+            checkbox.disabled = resetting || pendingTasks.has(task.id);
             checkbox.setAttribute('aria-label', `Complete ${task.title}`);
             checkbox.addEventListener('change', event => {
                 completeTask(task.id, event);
@@ -154,6 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
             addTask();
         }
     });
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetProgress);
+    }
 
     loadTasks();
 });
