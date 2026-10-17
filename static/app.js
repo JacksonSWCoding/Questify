@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const taskInput = document.getElementById('task-input');
-    const categorySelect = document.getElementById('category-select');
+    const categorySelect = document.getElementById('task-category');
     const addBtn = document.getElementById('add-btn');
     const taskList = document.getElementById('task-list');
     const xpTag = document.createElement('span');
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newTask = {
             id: Date.now(),
             text: text,
-            category: category
+            category: category,
         };
 
         tasks.push(newTask);
@@ -35,6 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function completeTask(id, event) {
+        const task = tasks.find((t) => t.id === id);
+        if (task) {
+            completeEvolutionTask(task.category, task.text);
+        }
+
         // Find the clicked checkbox's screen position
         const rect = event.target.getBoundingClientRect();
         const x = (rect.left + rect.width / 2) / window.innerWidth;
@@ -46,11 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
             spread: 60,
             origin: { x: x, y: y },
             scalar: 0.8,
-            disableForReducedMotion: true
+            disableForReducedMotion: true,
         });
 
         // Filter out the completed task so it disappears from the list
-        tasks = tasks.filter(task => task.id !== id);
+        tasks = tasks.filter((task) => task.id !== id);
 
         // Slight delay so the user sees the circle fill before the element disappears
         setTimeout(() => {
@@ -63,10 +68,14 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
     }
 
-    function renderTasks() {
-        taskList.innerHTML = ''; // Clear current display
+    function formatCategory(category) {
+        return category.charAt(0).toUpperCase() + category.slice(1);
+    }
 
-        tasks.forEach(task => {
+    function renderTasks() {
+        taskList.innerHTML = '';
+
+        tasks.forEach((task) => {
             const li = document.createElement('li');
 
             const checkbox = document.createElement('input');
@@ -78,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const tag = document.createElement('span');
             tag.className = `badge badge-${task.category.toLowerCase()}`;
-            tag.textContent = task.category;
+            tag.textContent = formatCategory(task.category);
 
             li.appendChild(checkbox);
             li.appendChild(textSpan);

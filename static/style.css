@@ -173,23 +173,7 @@ li input[type="checkbox"]:checked::after {
     border: 1px solid transparent;
 }
 
-.badge-general { 
-    background: #334155; 
-    color: #cbd5e1; 
-    border-color: #475569; 
-}
-.badge-fitness { 
-    background: rgba(22, 101, 52, 0.4); 
-    color: #4ade80; 
-    border-color: #166534; 
-}
-.badge-tech { 
-    background: rgba(30, 58, 138, 0.4); 
-    color: #60a5fa; 
-    border-color: #1e3a8a; 
-}
-.badge-creative { 
-    background: rgba(88, 28, 135, 0.4); 
-    color: #c084fc; 
-    border-color: #581c87; 
-}
+.badge-general { background: #e2e8f0; color: #475569; }
+.badge-fitness { background: #dcfce7; color: #15803d; }
+.badge-tech    { background: #dbeafe; color: #1d4ed8; }
+.badge-creative{ background: #f3e8ff; color: #6b21a8; }
