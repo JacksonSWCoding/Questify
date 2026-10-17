@@ -3,11 +3,11 @@
 .shop-modal {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.75);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 2000;
 }
 
 /* Hide shop when closed */
@@ -68,6 +68,20 @@
 .wallet-line {
     margin: 12px 0 8px;
     font-weight: 700;
+}
+
+.shop-content h2,
+.shop-content h3 {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: 0;
+    text-shadow: none;
+    font-family: Inter, Arial, sans-serif;
+    color: white;
 }
 
 .shop-header,
