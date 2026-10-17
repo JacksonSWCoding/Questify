@@ -3,6 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const categorySelect = document.getElementById('task-category');
     const addBtn = document.getElementById('add-btn');
     const taskList = document.getElementById('task-list');
+    const resetBtn = document.getElementById('reset-xp-btn');
+    const xpTag = document.createElement('span');
+    xpTag.className = 'xp-badge';
+    xpTag.textContent = '+20 XP'; // You can tie this dynamically to categories later!
 
     // Load tasks from localStorage on startup
     let tasks = JSON.parse(localStorage.getItem('taskQuest_tasks')) || [];
@@ -13,6 +17,21 @@ document.addEventListener('DOMContentLoaded', () => {
     taskInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addTask();
     });
+
+    // Reset the hero's XP and unlocked gear. XP lives on the Flask server
+    // (not localStorage), so this calls the existing reset endpoint.
+    // Your quest list is left alone.
+    if (resetBtn) {
+        resetBtn.addEventListener('click', async () => {
+            const sure = confirm("Reset your hero's XP and unlocked gear? Your quests will stay.");
+            if (!sure) return;
+
+            const result = await resetEvolutionState('reset');
+            if (result === null) {
+                alert('Could not reach the server. Is `py app.py` still running?');
+            }
+        });
+    }
 
     function addTask() {
         const text = taskInput.value.trim();

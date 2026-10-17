@@ -1,4 +1,4 @@
-# Python & Flask
+# python and flask
 __pycache__/
 *.py[cod]
 venv/
@@ -8,10 +8,11 @@ instance/
 *.db
 *.sqlite3
 
-# Environment variables (Crucial when you add the Nessie API key later!)
+# environment variables
 .env
 
-# Cursor & OS files
+# editor and operating system files
+.idea/
 .cursorrules
 .cursor/
 .DS_Store
