@@ -444,7 +444,9 @@ button:active {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .gear-layer.just-unlocked { animation: none; }
+    .gear-layer.just-unlocked,
+    #item-dumbbells.just-unlocked,
+    #item-paintbrush.just-unlocked { animation: none; }
 }
 
 /* ---------- Hand-held item fit ----------
@@ -455,17 +457,187 @@ button:active {
    Percentages are relative to the layer, i.e. the whole stage.
    To fine-tune: edit these values live in DevTools, then copy them back. */
 
+/* Each held item has: --fit-*   = where it rests in the hand
+                       --raise-* = where it floats during the unlock animation
+   transform-origin is the item's own centre, so scaling grows it in place. */
+
 /* dumbbell bar was ~68px right of the hand: move it left and up a touch */
 #item-dumbbells {
-    translate: -6.64% -1.46%;
+    --fit-t: -6.64% -1.46%;
+    --fit-r: 0deg;
+    --raise-t: -22.85% -63.57%;
+    --raise-r: 0deg;
+    --raise-s: 1.4;
+    transform-origin: 72.66% 65.04%;
+    translate: var(--fit-t);
+    rotate: var(--fit-r);
 }
 
-/* brush was gripped by the bristles: slide the handle into the hand and
-   tilt it upright. transform-origin is the grip point on the handle. */
+/* paintbrush: handle in the fist, bristles pointing down like it's about
+   to paint. (To flip it bristles-up instead: --fit-r: -30deg; --fit-t: 6.85% -5.88%;) */
 #item-paintbrush {
-    transform-origin: 25.98% 69.14%;
-    rotate: -30deg;
-    translate: 7.32% -5.57%;
+    --fit-t: 6.12% -3.65%;
+    --fit-r: 150deg;
+    --raise-t: 22.95% -68.85%;
+    --raise-r: -30deg;   /* bristles up while it's held overhead */
+    --raise-s: 1.15;
+    transform-origin: 26.86% 68.36%;
+    translate: var(--fit-t);
+    rotate: var(--fit-r);
+}
+
+/* ---------- "Item get!" animation (Zelda style) ----------
+   When evolution.js adds .just-unlocked, the held item pops out of the hero's
+   hand, floats above the head glowing, holds for a beat, then settles back
+   into the hand. Wearables and props keep the quick gearPop above. */
+#item-dumbbells.just-unlocked,
+#item-paintbrush.just-unlocked {
+    animation: itemGet 2.6s ease-in-out both;
+}
+
+@keyframes itemGet {
+    0% {
+        opacity: 0;
+        translate: var(--fit-t);
+        rotate: var(--fit-r);
+        scale: 1;
+        filter: brightness(1);
+    }
+    14% {
+        opacity: 1;
+        translate: var(--raise-t);
+        rotate: var(--raise-r);
+        scale: 0.5;
+        filter: brightness(2.4) drop-shadow(0 0 16px #fbbf24);
+    }
+    24% {
+        translate: var(--raise-t);
+        rotate: var(--raise-r);
+        scale: var(--raise-s);
+        filter: brightness(1.7) drop-shadow(0 0 24px #fbbf24);
+    }
+    46% {
+        translate: var(--raise-t);
+        rotate: var(--raise-r);
+        scale: calc(var(--raise-s) * 1.07);
+        filter: brightness(1.4) drop-shadow(0 0 30px #fde68a);
+    }
+    70% {
+        translate: var(--raise-t);
+        rotate: var(--raise-r);
+        scale: var(--raise-s);
+        filter: brightness(1.2) drop-shadow(0 0 16px #fbbf24);
+    }
+    100% {
+        opacity: 1;
+        translate: var(--fit-t);
+        rotate: var(--fit-r);
+        scale: 1;
+        filter: none;
+    }
+}
+
+/* ---------- Wearables: float up, hold, then drop on and "equip" ----------
+   Hat / glasses / headband / hoodie art is already drawn in its worn spot, so
+   the animation starts the layer lifted above the head, then lowers it into
+   place. (Props like the desk and easel keep the quick gearPop.) */
+#item-beret       { --raise-t: 0% -30%; --raise-s: 1.35; }
+#item-glasses     { --raise-t: 0% -38%; --raise-s: 1.5; }
+#item-headband    { --raise-t: 0% -32%; --raise-s: 1.4; }
+#item-hoodie      { --raise-t: 0% -52%; --raise-s: 1.1; }
+
+#item-beret.just-unlocked,
+#item-glasses.just-unlocked,
+#item-headband.just-unlocked,
+#item-hoodie.just-unlocked {
+    animation: itemEquip 2.6s ease-in-out both;
+}
+
+@keyframes itemEquip {
+    0% {
+        opacity: 0;
+        translate: var(--raise-t);
+        scale: 0.4;
+        filter: brightness(2.4) drop-shadow(0 0 16px #fbbf24);
+    }
+    14% {
+        opacity: 1;
+        translate: var(--raise-t);
+        scale: var(--raise-s);
+        filter: brightness(1.8) drop-shadow(0 0 24px #fbbf24);
+    }
+    46% {
+        translate: var(--raise-t);
+        scale: calc(var(--raise-s) * 1.06);
+        filter: brightness(1.4) drop-shadow(0 0 30px #fde68a);
+    }
+    66% {
+        translate: var(--raise-t);
+        scale: var(--raise-s);
+        filter: brightness(1.2) drop-shadow(0 0 16px #fbbf24);
+    }
+    84% {
+        translate: 0 0;
+        scale: 1.08;
+        filter: brightness(1.8) drop-shadow(0 0 20px #fbbf24);
+    }
+    100% {
+        opacity: 1;
+        translate: 0 0;
+        scale: 1;
+        filter: none;
+    }
+}
+
+/* ---------- Idle breathing + the hero's reaction to a new item ----------
+   Every layer lives inside .character-rig, so one animation moves the whole
+   hero. Origin is near the feet so he stays planted while he squashes/stretches. */
+.character-rig {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 92%;
+    /*animation: idleBreath 3.4s ease-in-out infinite;*/
+}
+
+/* Instantly hide all previously equipped items whenever the hero is doing the item-get animation */
+.character-rig.item-get .gear-layer.unlocked:not(.just-unlocked) {
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+@keyframes idleBreath {
+    0%, 100% { transform: translateY(0) scale(1, 1); }
+    50%      { transform: translateY(-0.7%) scale(0.996, 1.014); }
+}
+
+/* app.js adds .item-get for the length of an unlock: crouch, jump, stretch up
+   while the item is held overhead, then settle. Replaces idle while it plays. */
+.character-rig.item-get {
+    animation: heroItemGet 2.6s ease-in-out both;
+}
+
+@keyframes heroItemGet {
+    0%   { transform: translateY(0)     scale(1, 1); }
+    8%   { transform: translateY(1.5%)  scale(1.03, 0.96); }
+    18%  { transform: translateY(-4%)   scale(0.98, 1.04); }
+    28%  { transform: translateY(0)     scale(1, 1); }
+    38%  { transform: translateY(-0.8%) scale(0.99, 1.025); }
+    66%  { transform: translateY(-0.8%) scale(0.99, 1.025); }
+    80%  { transform: translateY(1%)    scale(1.02, 0.97); }
+    100% { transform: translateY(0)     scale(1, 1); }
+}
+
+/* must come after the animation rules above so it wins on equal specificity */
+@media (prefers-reduced-motion: reduce) {
+    #item-dumbbells.just-unlocked,
+    #item-paintbrush.just-unlocked,
+    #item-beret.just-unlocked,
+    #item-glasses.just-unlocked,
+    #item-headband.just-unlocked,
+    #item-hoodie.just-unlocked,
+    .character-rig,
+    .character-rig.item-get { animation: none; }
 }
 
 /* ---------- Reset button (secondary / destructive) ---------- */
