@@ -33,10 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // "Item get!" reaction. evolution.js adds .just-unlocked to a gear layer when
-    // it's newly unlocked; watch for that and make the whole hero hop while the
-    // item is shown off (the item itself is animated in CSS).
-    // "Item get!" reaction and base pose switching
+    
+    // "Item get!" reaction, base pose switching, and safe state restoration
     const rig = document.querySelector('.character-rig');
     const stage = document.querySelector('.character-stage');
     const baseAvatar = document.getElementById('base-avatar');
@@ -46,32 +44,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (rig && stage) {
         new MutationObserver((records) => {
-            const gotNewItem = records.some(
-                (r) =>
-                    r.target.classList.contains('just-unlocked') &&
-                    !(r.oldValue || '').split(/\s+/).includes('just-unlocked')
-            );
-            if (!gotNewItem) return;
+            records.forEach((record) => {
+                const target = record.target;
+                const oldValues = (record.oldValue || '').split(/\s+/);
+                
+                // Check if this specific gear layer just received 'just-unlocked'
+                if (
+                    target.classList.contains('gear-layer') &&
+                    target.classList.contains('just-unlocked') &&
+                    !oldValues.includes('just-unlocked')
+                ) {
+                    const newlyUnlockedItem = target;
 
-            rig.classList.remove('item-get');
-            void rig.offsetWidth; // force reflow so the animation restarts
-            rig.classList.add('item-get');
+                    // Clean up 'just-unlocked' from all OTHER gear layers so they don't get stuck
+                    document.querySelectorAll('.gear-layer').forEach((gear) => {
+                        if (gear !== newlyUnlockedItem) {
+                            gear.classList.remove('just-unlocked');
+                        }
+                    });
 
-            // Switch to base_pose.png during the item-get celebration
-            if (baseAvatar && baseAvatar.dataset.poseSrc) {
-                previousAvatarSrc = baseAvatar.src;
-                baseAvatar.src = baseAvatar.dataset.poseSrc;
-            }
+                    // If already cheering, ignore overlapping triggers so timers don't break
+                    if (rig.classList.contains('item-get')) return;
 
-            clearTimeout(cheerTimer);
-            clearTimeout(poseResetTimer);
+                    rig.classList.remove('item-get');
+                    void rig.offsetWidth; // force reflow so the animation restarts
+                    rig.classList.add('item-get');
 
-            cheerTimer = setTimeout(() => rig.classList.remove('item-get'), 2700);
-            poseResetTimer = setTimeout(() => {
-                if (baseAvatar && previousAvatarSrc) {
-                    baseAvatar.src = previousAvatarSrc;
+                    // Switch to base_pose.jpg safely during the item-get celebration
+                    if (baseAvatar && baseAvatar.dataset.poseSrc) {
+                        const poseSrc = baseAvatar.dataset.poseSrc;
+                        
+                        // Only update previousAvatarSrc if we aren't currently looking at the cheer pose
+                        if (!baseAvatar.src.includes(poseSrc)) {
+                            previousAvatarSrc = baseAvatar.src;
+                        }
+                        // Fallback safety net if previousAvatarSrc is somehow blank or corrupted
+                        if (!previousAvatarSrc || previousAvatarSrc.includes(poseSrc)) {
+                            previousAvatarSrc = baseAvatar.dataset.baseSrc || '/static/images/base.png';
+                        }
+
+                        baseAvatar.src = poseSrc;
+                    }
+
+                    // Forcefully hide all OTHER gear layers during the cheer
+                    const allGears = document.querySelectorAll('.gear-layer');
+                    allGears.forEach((gear) => {
+                        if (gear !== newlyUnlockedItem) {
+                            gear.style.setProperty('opacity', '0', 'important');
+                            gear.style.setProperty('visibility', 'hidden', 'important');
+                        }
+                    });
+
+                    clearTimeout(cheerTimer);
+                    clearTimeout(poseResetTimer);
+
+                    cheerTimer = setTimeout(() => {
+                        rig.classList.remove('item-get');
+                    }, 2700);
+                    
+                    // Switch back to the regular base image and restore old gear at 2.2s
+                    poseResetTimer = setTimeout(() => {
+                        if (baseAvatar && previousAvatarSrc) {
+                            baseAvatar.src = previousAvatarSrc;
+                        }
+                        allGears.forEach((gear) => {
+                            gear.style.removeProperty('opacity');
+                            gear.style.removeProperty('visibility');
+                        });
+                    }, 2200);
                 }
-            }, 2700);
+            });
         }).observe(stage, {
             subtree: true,
             attributes: true,
