@@ -204,7 +204,7 @@ def purchase_shop_item(item_id, unlocked_items):
         balance = get_balance()
         price = item["price"]
         if balance < price:
-            raise NessieError(f"Habit Vault has ${balance}, and this costs ${price}")
+            raise NessieError(f"Habit Vault has {balance} coins, and this costs {price} coins")
 
         merchant_id = ensure_merchant()
         _request("POST", f"/accounts/{_account_id()}/purchases", {
