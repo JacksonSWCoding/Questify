@@ -35,6 +35,13 @@ let selectedCategory = 'all';
 let loading = false;
 let purchasing = false;
 
+function showCoins(amount) {
+    const label = `${amount} coins`;
+    if (coinDisplay) coinDisplay.textContent = label;
+    const wallet = document.getElementById('wallet-balance');
+    if (wallet) wallet.textContent = label;
+}
+
 async function shopRequest(url, options = {}) {
     const response = await fetch(url, options);
     const data = await response.json();
@@ -52,6 +59,9 @@ async function loadUnlockedGear() {
         if (response.ok) {
             const player = await response.json();
             unlockedGear = player.unlocked_items || [];
+            if (player.coins !== undefined && player.coins !== null) {
+                showCoins(player.coins);
+            }
         }
     } catch (error) {
         console.warn('Could not load character state for gear requirements:', error);
@@ -76,9 +86,7 @@ async function loadShop() {
                 requires: item.requires !== undefined ? item.requires : (ITEM_REQUIREMENTS[item.id] || null)
             }));
         }
-        if (coinDisplay) {
-            coinDisplay.textContent = coins;
-        }
+        showCoins(coins);
     } catch (error) {
         console.error('Could not load shop from /api/shop, using fallback items:', error);
     } finally {
@@ -117,9 +125,7 @@ async function purchaseItem(itemId) {
 
         coins = result.coins ?? (coins - item.price);
         item.owned = true;
-        if (coinDisplay) {
-            coinDisplay.textContent = coins;
-        }
+        showCoins(coins);
     } catch (error) {
         alert(`Could not purchase item: ${error.message}`);
     } finally {

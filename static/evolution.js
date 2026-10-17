@@ -239,7 +239,17 @@ function updateCharacterVisuals(stateData) {
         return;
     }
 
-    if (newlyUnlocked.length) {
+    if (stateData.coins !== undefined && stateData.coins !== null) {
+        const wallet = document.getElementById('wallet-balance');
+        const shopCoins = document.getElementById('shop-coins');
+        const coinLabel = `${stateData.coins} coins`;
+        if (wallet) wallet.textContent = coinLabel;
+        if (shopCoins) shopCoins.textContent = coinLabel;
+    }
+
+    if (stateData.wallet_error) {
+        showUnlockMessage(stateData.wallet_error);
+    } else if (newlyUnlocked.length) {
         showUnlockMessage(`New gear unlocked: ${newlyUnlocked.map((id) => GEAR_LABELS[id] || id).join(', ')}! Check the Customize menu to equip.`);
     }
 }
