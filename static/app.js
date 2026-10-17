@@ -1,57 +1,98 @@
 document.addEventListener('DOMContentLoaded', () => {
     const taskInput = document.getElementById('task-input');
-    const categorySelect = document.getElementById('category-select');
+    const categorySelect = document.getElementById('task-category');
     const addBtn = document.getElementById('add-btn');
     const taskList = document.getElementById('task-list');
+    const xpTag = document.createElement('span');
+    xpTag.className = 'xp-badge';
+    xpTag.textContent = '+20 XP'; // You can tie this dynamically to categories later!
 
-    // Add task when clicking button
+    // Load tasks from localStorage on startup
+    let tasks = JSON.parse(localStorage.getItem('taskQuest_tasks')) || [];
+    renderTasks();
+
+    // Event Listeners
     addBtn.addEventListener('click', addTask);
-
-    // Also add task if user presses "Enter" key inside input
     taskInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addTask();
     });
 
     function addTask() {
-        const taskText = taskInput.value.trim();
+        const text = taskInput.value.trim();
         const category = categorySelect.value;
 
-        if (taskText === '') return; // Don't add empty tasks
+        if (text === '') return;
 
-        // Create <li> element
-        const li = document.createElement('li');
+        const newTask = {
+            id: Date.now(),
+            text: text,
+            category: category,
+        };
 
-        // Create Checkbox
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
+        tasks.push(newTask);
+        saveAndRender();
+        taskInput.value = '';
+    }
 
-        // Task Text
-        const textSpan = document.createElement('span');
-        textSpan.textContent = taskText;
+    function completeTask(id, event) {
+        const task = tasks.find((t) => t.id === id);
+        if (task) {
+            completeEvolutionTask(task.category, task.text);
+        }
 
-        // Category Tag Badge
-        const tag = document.createElement('span');
-        tag.className = 'badge';
-        tag.textContent = category;
+        // Find the clicked checkbox's screen position
+        const rect = event.target.getBoundingClientRect();
+        const x = (rect.left + rect.width / 2) / window.innerWidth;
+        const y = (rect.top + rect.height / 2) / window.innerHeight;
 
-        // Checkbox event: Strike through text & signal completion
-        checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
-                li.classList.add('completed');
-                // You can fire an XP event here later for your teammate!
-                console.log(`Task completed in category: ${category}`);
-            } else {
-                li.classList.remove('completed');
-            }
+        // Trigger confetti bursting outwards from the circle
+        confetti({
+            particleCount: 35,
+            spread: 60,
+            origin: { x: x, y: y },
+            scalar: 0.8,
+            disableForReducedMotion: true,
         });
 
-        // Assemble item & append to list
-        li.appendChild(checkbox);
-        li.appendChild(textSpan);
-        li.appendChild(tag);
-        taskList.appendChild(li);
+        // Filter out the completed task so it disappears from the list
+        tasks = tasks.filter((task) => task.id !== id);
 
-        // Clear input box
-        taskInput.value = '';
+        // Slight delay so the user sees the circle fill before the element disappears
+        setTimeout(() => {
+            saveAndRender();
+        }, 200);
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('taskQuest_tasks', JSON.stringify(tasks));
+        renderTasks();
+    }
+
+    function formatCategory(category) {
+        return category.charAt(0).toUpperCase() + category.slice(1);
+    }
+
+    function renderTasks() {
+        taskList.innerHTML = '';
+
+        tasks.forEach((task) => {
+            const li = document.createElement('li');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.addEventListener('change', (e) => completeTask(task.id, e));
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = task.text;
+
+            const tag = document.createElement('span');
+            tag.className = `badge badge-${task.category.toLowerCase()}`;
+            tag.textContent = formatCategory(task.category);
+
+            li.appendChild(checkbox);
+            li.appendChild(textSpan);
+            li.appendChild(tag);
+            taskList.appendChild(li);
+        });
     }
 });

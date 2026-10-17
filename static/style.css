@@ -14,23 +14,34 @@ body {
 .app-container {
     display: flex;
     gap: 24px;
+
     max-width: 1200px;
     margin: 0 auto;
 }
 
-/* RPG Panel Cards */
+    max-width: 1050px;
+    margin: 0 auto;
+}
+
+
 .task-panel, .character-panel {
     background: #111827;
     border: 1px solid #1f2937;
     padding: 24px;
+
     border-radius: 14px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
     flex: 1;
 }
 
 h2 {
     margin-top: 0;
     color: #f1f5f9;
+
     font-size: 1.4rem;
     border-bottom: 2px solid #1f2937;
     padding-bottom: 12px;
@@ -42,6 +53,14 @@ h2 {
 /* Quest Input Bar */
 .input-group {
     display: flex;
+    font-size: 1.5rem;
+    border-bottom: 2px solid #1f2937;
+    padding-bottom: 10px;
+}
+
+/* Dark Input Group for Adding Tasks */
+.input-group {
+    display: flex;
     gap: 10px;
     margin-bottom: 20px;
 }
@@ -51,11 +70,19 @@ input[type="text"] {
     padding: 10px 14px;
     background: #1f2937;
     border: 1.5px solid #374151;
+
     border-radius: 8px;
     font-size: 0.95rem;
     color: #f8fafc;
     outline: none;
     transition: all 0.2s;
+
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: #f8fafc;
+    outline: none;
+    transition: border-color 0.2s, background-color 0.2s;
+
 }
 
 input[type="text"]::placeholder {
@@ -64,7 +91,11 @@ input[type="text"]::placeholder {
 
 input[type="text"]:focus {
     border-color: #3b82f6;
+
     background: #0f172a;
+
+    background: #111827;
+
 }
 
 /* Dark Category Selector Dropdown */
@@ -73,6 +104,9 @@ select {
     background: #1f2937;
     border: 1.5px solid #374151;
     border-radius: 8px;
+
+    border-radius: 6px;
+
     color: #f8fafc;
     cursor: pointer;
     outline: none;
@@ -84,6 +118,7 @@ select:focus {
 }
 
 button {
+
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     border: none;
@@ -102,6 +137,24 @@ button:hover {
 
 button:active {
     transform: translateY(0);
+
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+    background-color: #1d4ed8;
+}
+
+button:active {
+    transform: scale(0.98);
+
 }
 
 ul {
@@ -110,11 +163,13 @@ ul {
     margin: 0;
 }
 
-/* Quest Cards */
+
+
 li {
     display: flex;
     align-items: center;
     gap: 12px;
+
     padding: 14px 16px;
     background: #1f2937;
     border: 1px solid #374151;
@@ -156,24 +211,73 @@ li input[type="checkbox"]:checked {
     border-color: #38bdf8;
 }
 
-/* Inner Checkmark Icon */
+
+    padding: 12px 14px;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    color: #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+li:hover {
+    border-color: #3b82f6;
+    background: #252f3f;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Circular Checkbox Buttons */
+li input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #64748b;
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    position: relative;
+}
+
+li input[type="checkbox"]:hover {
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.15);
+}
+
+li input[type="checkbox"]:checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+
 li input[type="checkbox"]:checked::after {
     content: '';
     position: absolute;
     top: 3px;
+
     left: 7px;
     width: 4px;
     height: 9px;
     border: solid #0f172a;
+
+    left: 6px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
 
-/* RPG Category Badges */
+
 .badge {
     font-size: 0.75rem;
     font-weight: 600;
     padding: 4px 10px;
+
     border-radius: 20px;
     margin-left: auto;
     letter-spacing: 0.3px;
@@ -198,3 +302,14 @@ li input[type="checkbox"]:checked::after {
     color: #c084fc; 
     border: 1px solid rgba(168, 85, 247, 0.3); 
 }
+
+    border-radius: 12px;
+    margin-left: auto;
+    border: 1px solid transparent;
+}
+
+.badge-general { background: #e2e8f0; color: #475569; }
+.badge-fitness { background: #dcfce7; color: #15803d; }
+.badge-tech    { background: #dbeafe; color: #1d4ed8; }
+.badge-creative{ background: #f3e8ff; color: #6b21a8; }
+
