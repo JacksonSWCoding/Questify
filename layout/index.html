@@ -7,6 +7,9 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=9">
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@600;700&family=Inter:wght@400;600;700&display=swap"
         rel="stylesheet"
@@ -52,6 +55,23 @@
 
             <div id="character-display">
                 <div class="character-stage" data-trait="general">
+                  <div class="character-rig">
+                    <!-- Base Character Body & Outfit Layers Stacked Directly Together -->
+                    <div id="base-avatar" class="lpc-sprite sprite-male"></div>
+                    <div id="outfit-layer" class="lpc-sprite sprite-outfit-male"></div>
+                    <!-- Gear Layers -->
+                    <div id="item-black_shoes" class="gear-layer lpc-sprite"></div>
+                    <div id="item-headband" class="gear-layer lpc-sprite"></div>
+                    <div id="item-dagger" class="gear-layer lpc-sprite"></div>
+                    <div id="item-glasses" class="gear-layer lpc-sprite"></div>
+                    <div id="item-cape" class="gear-layer lpc-sprite"></div>
+                    <div id="item-wand" class="gear-layer lpc-sprite"></div>
+                    <div id="item-cap" class="gear-layer lpc-sprite"></div>
+                    <div id="item-bauldron" class="gear-layer lpc-sprite"></div>
+                    <div id="item-crystal" class="gear-layer lpc-sprite"></div>
+                  </div>
+                  <!-- Item held overhead during the unlock animation -->
+                  <div id="item-get-icon" class="item-get-icon" aria-hidden="true"></div>
                     <div class="character-rig">
                         <div
                             id="base-avatar"
@@ -138,6 +158,58 @@
         </section>
     </div>
 
+    <!-- CUSTOMIZATION & INVENTORY MODAL -->
+    <div id="customizer-modal" class="modal-overlay hidden">
+      <div class="modal-card wide-modal">
+        <h2>Character Customization & Inventory</h2>
+        <div class="modal-grid">
+          
+          <!-- LEFT COLUMN: Gender & Settings -->
+          <div class="modal-col">
+            <div class="custom-group">
+              <label>Base Model:</label>
+              <div class="gender-toggle">
+                <button type="button" class="gender-btn active" data-gender="male">Male</button>
+                <button type="button" class="gender-btn" data-gender="female">Female</button>
+              </div>
+            </div>
+            <hr style="border-color: #3b4252; margin: 20px 0;">
+            <div class="custom-group">
+              <label style="color: #bf616a;">Danger Zone:</label>
+              <button id="reset-progress-btn" class="danger-btn">Reset Hero Progress</button>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Categorized Inventory -->
+          <div class="modal-col inventory-col">
+            <label style="font-family: 'Cinzel', serif; color: var(--gold-glow); font-weight: bold; display: block; margin-bottom: 10px;">Hero Equipment</label>
+            
+            <div class="inventory-section">
+              <span class="inv-category-title">👕 Shirts</span>
+              <div id="inv-shirts" class="inv-slot-group"></div>
+            </div>
+
+            <div class="inventory-section">
+              <span class="inv-category-title">🩳 Shorts</span>
+              <div id="inv-shorts" class="inv-slot-group"></div>
+            </div>
+
+            <div class="inventory-section">
+              <span class="inv-category-title">👟 Shoes</span>
+              <div id="inv-shoes" class="inv-slot-group"></div>
+            </div>
+
+            <div class="inventory-section">
+              <span class="inv-category-title">⚔️ Armor / Weapons</span>
+              <div id="inv-weapons" class="inv-slot-group"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button id="save-customization-btn" class="primary-btn">Save Changes</button>
+          <button id="close-modal-btn" class="secondary-btn">Cancel</button>
     <div id="shop-modal" class="shop-modal" hidden>
         <div class="shop-content">
             <div class="shop-header">
