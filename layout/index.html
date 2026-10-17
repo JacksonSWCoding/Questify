@@ -6,6 +6,8 @@
     <title>Task Quest</title>
     <!-- Pointing back one folder to static/style.css -->
     <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="/static/shop.css">
+    <script src="/static/shop.js" defer></script>
 </head>
 <body>
     <div class="app-container">
@@ -73,7 +75,66 @@
 
                 <div id="unlocked-gear-list" class="unlocked-gear"></div>
             </div>
+            <button id="shop-button">🛍️ Shop</button>
         </section>
+
+<!-- AVATAR SHOP POPUP -->
+<div id="shop-modal" class="shop-modal" hidden>
+
+    <div class="shop-content">
+
+        <!-- Shop Header -->
+        <div class="shop-header">
+            <h2>🛍️ Avatar Shop</h2>
+            <button id="close-shop" type="button">✕ Close</button>
+        </div>
+
+        <!-- Coin Balance -->
+        <div class="shop-wallet">
+            <h3>🪙 Your Coins: <span id="shop-coins">0</span></h3>
+        </div>
+
+        <!-- Shop Categories -->
+        <div class="shop-categories">
+            <button class="shop-category" data-category="all">
+                All
+            </button>
+
+            <button class="shop-category" data-category="clothes">
+                Clothes
+            </button>
+
+            <button class="shop-category" data-category="accessories">
+                Accessories
+            </button>
+
+            <button class="shop-category" data-category="backgrounds">
+                Backgrounds
+            </button>
+        </div>
+
+        <!-- Available Items -->
+        <div class="shop-section">
+            <h3>Available Items</h3>
+
+            <div id="shop-items" class="shop-items">
+                <!-- JavaScript will display shop items here -->
+            </div>
+        </div>
+
+        <!-- Purchased Items -->
+        <div class="inventory-section">
+            <h3>🎒 Your Inventory</h3>
+
+            <div id="shop-inventory" class="shop-inventory">
+                <p>No items purchased yet.</p>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+<!-- END AVATAR SHOP -->
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
