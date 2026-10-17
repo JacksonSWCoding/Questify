@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Quest</title>
+    <!-- Pointing back one folder to static/style.css -->
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- LEFT PANEL: Task System -->
+        <section class="task-panel">
+            <h2>My Tasks</h2>
+            
+            <!-- Input Row -->
+            <div class="input-group">
+                <input type="text" id="task-input" placeholder="Enter a new task...">
+                <select id="category-select">
+                    <option value="General">📋 General</option>
+                    <option value="Fitness">🏃 Fitness</option>
+                    <option value="Tech">💻 Tech</option>
+                    <option value="Creative">🎨 Creative</option>
+                </select>
+                <button id="add-btn">Add Task</button>
+            </div>
+
+            <!-- Task List Container -->
+            <ul id="task-list">
+                <!-- Tasks will appear here -->
+            </ul>
+        </section>
+
+        <!-- RIGHT PANEL: Character Window -->
+        <section class="character-panel">
+            <h2>Your Hero</h2>
+            <div id="character-display">
+                <p>Character loads here...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Pointing back one folder to static/app.js -->
+    <script src="../static/app.js"></script>
+</body>
+</html>
