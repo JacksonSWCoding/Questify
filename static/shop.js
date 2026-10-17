@@ -47,8 +47,9 @@ async function loadUnlockedGear() {
         if (player.coins !== undefined && player.coins !== null) {
             const shopCoins = document.getElementById("shop-coins");
             const wallet = document.getElementById("wallet-balance");
-            if (shopCoins) shopCoins.textContent = player.coins;
-            if (wallet) wallet.textContent = player.coins;
+            const coinLabel = `${player.coins} coins`;
+            if (shopCoins) shopCoins.textContent = coinLabel;
+            if (wallet) wallet.textContent = coinLabel;
         }
 
         displayShopItems();
@@ -164,7 +165,10 @@ shopContainer.addEventListener("click", async (event) => {
         }
 
         ownedCosmetics = result.owned_cosmetics || [];
-        document.getElementById("shop-coins").textContent = result.coins;
+        const coinLabel = `${result.coins} coins`;
+        document.getElementById("shop-coins").textContent = coinLabel;
+        const wallet = document.getElementById("wallet-balance");
+        if (wallet) wallet.textContent = coinLabel;
 
         displayShopItems();
         displayInventory();

@@ -99,9 +99,30 @@ def _request(method, path, payload=None):
     except ValueError:
         body = {}
 
-    if response.status_code not in (200, 201):
+    if response.status_code not in (200, 201, 204):
         message = body.get("message") if isinstance(body, dict) else response.text
         raise NessieError(message or f"Nessie returned {response.status_code}")
+    return body
+
+
+def _transactions(kind):
+    """Return deposits or purchases. An empty account comes back as 404."""
+    account_id = _account_id()
+    try:
+        response = requests.get(
+            f"{BASE_URL}/accounts/{account_id}/{kind}",
+            params={"key": _api_key()},
+            timeout=8,
+        )
+    except requests.RequestException as exc:
+        raise NessieError(f"Could not reach Nessie: {exc}") from exc
+    if response.status_code == 404:
+        return []
+    if response.status_code != 200:
+        raise NessieError(f"Nessie returned {response.status_code} for {kind}")
+    body = response.json()
+    if not isinstance(body, list):
+        raise NessieError(f"Nessie did not return a {kind} list")
     return body
 
 
@@ -154,11 +175,8 @@ def get_balance():
     Nessie creates the transactions, but the account "balance" field stays at 0
     in this sandbox, so the vault total is calculated from those transactions.
     """
-    account_id = _account_id()
-    deposits = _request("GET", f"/accounts/{account_id}/deposits")
-    purchases = _request("GET", f"/accounts/{account_id}/purchases")
-    if not isinstance(deposits, list) or not isinstance(purchases, list):
-        raise NessieError("Nessie did not return transaction lists")
+    deposits = _transactions("deposits")
+    purchases = _transactions("purchases")
 
     def total(transactions):
         return sum(
@@ -227,3 +245,15 @@ def purchase_shop_item(item_id, unlocked_items):
 
 def wallet_snapshot():
     return {"coins": get_balance(), "owned_cosmetics": _read_owned()}
+
+
+def reset_wallet():
+    """Delete every vault transaction and forget purchased shop items."""
+    with _lock:
+        for kind in ("deposits", "purchases"):
+            for transaction in _transactions(kind):
+                transaction_id = transaction.get("_id")
+                if transaction_id:
+                    _request("DELETE", f"/{kind}/{transaction_id}")
+        _write_owned([])
+        return wallet_snapshot()

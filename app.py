@@ -60,10 +60,16 @@ def buy_shop_item():
 @app.post("/api/reset-state")
 def reset_state():
     data = request.get_json(silent=True) or {}
+    mode = data.get("mode", "reset")
     try:
-        state = evolution_logic.reset_or_demo_state(data.get("mode", "reset"))
+        state = evolution_logic.reset_or_demo_state(mode)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
+    if mode == "reset":
+        try:
+            state.update(nessie_service.reset_wallet())
+        except nessie_service.NessieError as exc:
+            state["wallet_error"] = str(exc)
     return jsonify(state)
 
 

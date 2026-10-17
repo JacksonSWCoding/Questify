@@ -34,16 +34,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetProgressBtn = document.getElementById('reset-progress-btn');
     if (resetProgressBtn) {
         resetProgressBtn.addEventListener('click', async () => {
-            const sure = confirm("Reset your hero's XP and unlocked gear? Your quests will stay.");
+            const sure = confirm("Reset XP, unlocked gear, shop inventory, and the Habit Vault? This also clears your quest list.");
             if (!sure) return;
 
             const result = await resetEvolutionState('reset');
             if (result === null) {
                 alert('Could not reach the server. Is `py app.py` still running?');
-            } else {
-                localStorage.clear();
-                location.reload();
+                return;
             }
+            if (result.wallet_error) {
+                alert(`Hero progress was reset, but the Habit Vault could not be cleared: ${result.wallet_error}`);
+            }
+            localStorage.clear();
+            location.reload();
         });
     }
     

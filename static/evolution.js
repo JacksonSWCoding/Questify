@@ -112,8 +112,9 @@ function updateCharacterVisuals(stateData) {
     if (stateData.coins !== undefined && stateData.coins !== null) {
         const wallet = document.getElementById('wallet-balance');
         const shopCoins = document.getElementById('shop-coins');
-        if (wallet) wallet.textContent = stateData.coins;
-        if (shopCoins) shopCoins.textContent = stateData.coins;
+        const coinLabel = `${stateData.coins} coins`;
+        if (wallet) wallet.textContent = coinLabel;
+        if (shopCoins) shopCoins.textContent = coinLabel;
     }
 
     if (stateData.wallet_error) {
