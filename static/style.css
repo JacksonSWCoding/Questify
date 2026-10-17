@@ -67,6 +67,7 @@ input[type="text"]:focus {
     background: #0f172a;
 }
 
+/* Dark Category Selector Dropdown */
 select {
     padding: 10px;
     background: #1f2937;
@@ -178,7 +179,7 @@ li input[type="checkbox"]:checked::after {
     letter-spacing: 0.3px;
 }
 
-.badge- general { 
+.badge-general { 
     background: #334155; 
     color: #cbd5e1; 
 }
