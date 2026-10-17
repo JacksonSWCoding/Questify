@@ -460,7 +460,6 @@ def purchase_item(item_id):
     }), 201
 
 
-init_db()
-
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
