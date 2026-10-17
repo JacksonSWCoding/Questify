@@ -33,6 +33,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // "Item get!" reaction. evolution.js adds .just-unlocked to a gear layer when
+    // it's newly unlocked; watch for that and make the whole hero hop while the
+    // item is shown off (the item itself is animated in CSS).
+    // "Item get!" reaction and base pose switching
+    const rig = document.querySelector('.character-rig');
+    const stage = document.querySelector('.character-stage');
+    const baseAvatar = document.getElementById('base-avatar');
+    let cheerTimer = null;
+    let poseResetTimer = null;
+    let previousAvatarSrc = '';
+
+    if (rig && stage) {
+        new MutationObserver((records) => {
+            const gotNewItem = records.some(
+                (r) =>
+                    r.target.classList.contains('just-unlocked') &&
+                    !(r.oldValue || '').split(/\s+/).includes('just-unlocked')
+            );
+            if (!gotNewItem) return;
+
+            rig.classList.remove('item-get');
+            void rig.offsetWidth; // force reflow so the animation restarts
+            rig.classList.add('item-get');
+
+            // Switch to base_pose.png during the item-get celebration
+            if (baseAvatar && baseAvatar.dataset.poseSrc) {
+                previousAvatarSrc = baseAvatar.src;
+                baseAvatar.src = baseAvatar.dataset.poseSrc;
+            }
+
+            clearTimeout(cheerTimer);
+            clearTimeout(poseResetTimer);
+
+            cheerTimer = setTimeout(() => rig.classList.remove('item-get'), 2700);
+            poseResetTimer = setTimeout(() => {
+                if (baseAvatar && previousAvatarSrc) {
+                    baseAvatar.src = previousAvatarSrc;
+                }
+            }, 2700);
+        }).observe(stage, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class'],
+            attributeOldValue: true,
+        });
+    }
+
     function addTask() {
         const text = taskInput.value.trim();
         const category = categorySelect.value;
