@@ -599,6 +599,13 @@ button:active {
     /*animation: idleBreath 3.4s ease-in-out infinite;*/
 }
 
+/* Instantly hide all previously equipped items whenever the hero is doing the item-get animation */
+.character-rig.item-get .gear-layer.unlocked:not(.just-unlocked) {
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
 @keyframes idleBreath {
     0%, 100% { transform: translateY(0) scale(1, 1); }
     50%      { transform: translateY(-0.7%) scale(0.996, 1.014); }
