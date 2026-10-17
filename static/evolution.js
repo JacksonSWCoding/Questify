@@ -177,6 +177,19 @@ function restoreEquipped(items) {
 
 function updateCharacterVisuals(stateData) {
     const xp = stateData.xp || {};
+        const generalXp = xp.general || 0;
+    const generalBar = document.getElementById('general-xp-bar');
+    const generalText = document.getElementById('general-xp-text');
+
+    if (generalBar) {
+        generalBar.style.width = `${(generalXp % 30) / 30 * 100}%`;
+        generalBar.style.background = '#f5b942';
+    }
+
+    if (generalText) {
+        generalText.textContent =
+            `${generalXp % 30} / 30 XP`;
+    }
     const unlocked = new Set(stateData.unlocked_items || []);
     const newlyUnlocked = stateData.newly_unlocked || [];
 
