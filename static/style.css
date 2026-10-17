@@ -446,3 +446,40 @@ button:active {
 @media (prefers-reduced-motion: reduce) {
     .gear-layer.just-unlocked { animation: none; }
 }
+
+/* ---------- Hand-held item fit ----------
+   Each gear PNG is a full-size 1024x1024 layer with the item drawn in a
+   fixed spot, so we nudge each one onto the hero's hand. The individual
+   translate / rotate properties are used (instead of transform) so they
+   don't fight the unlock "pop" animation, which animates transform.
+   Percentages are relative to the layer, i.e. the whole stage.
+   To fine-tune: edit these values live in DevTools, then copy them back. */
+
+/* dumbbell bar was ~68px right of the hand: move it left and up a touch */
+#item-dumbbells {
+    translate: -6.64% -1.46%;
+}
+
+/* brush was gripped by the bristles: slide the handle into the hand and
+   tilt it upright. transform-origin is the grip point on the handle. */
+#item-paintbrush {
+    transform-origin: 25.98% 69.14%;
+    rotate: -30deg;
+    translate: 7.32% -5.57%;
+}
+
+/* ---------- Reset button (secondary / destructive) ---------- */
+.btn-reset {
+    margin-top: 6px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    background: transparent;
+    color: #fca5a5;
+    border: 1px solid rgba(248, 113, 113, 0.55);
+    box-shadow: none;
+}
+
+.btn-reset:hover {
+    background: rgba(127, 29, 29, 0.45);
+    filter: none;
+}
