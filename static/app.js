@@ -78,10 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     void rig.offsetWidth;
                     rig.classList.add('item-get');
 
-                    // Forcefully hide all OTHER gear layers during the cheer animation
+                    // Forcefully hide all OTHER gear layers except the newly unlocked item during cheer animation
                     const allGears = document.querySelectorAll('.gear-layer');
                     allGears.forEach((gear) => {
-                        if (gear !== newlyUnlockedItem) {
+                        if (gear !== newlyUnlockedItem && !gear.classList.contains('equipped')) {
                             gear.style.setProperty('opacity', '0', 'important');
                             gear.style.setProperty('visibility', 'hidden', 'important');
                         }
@@ -90,8 +90,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearTimeout(cheerTimer);
                     clearTimeout(gearResetTimer);
 
+                    // Hold the new item up overhead
+                    const itemIcon = document.getElementById('item-get-icon');
+                    if (itemIcon) {
+                        const itemId = newlyUnlockedItem.id.replace('item-', '');
+                        itemIcon.innerHTML = (typeof GEAR_ICONS !== 'undefined' && GEAR_ICONS[itemId]) || '✨';
+                        itemIcon.classList.remove('show');
+                        void itemIcon.offsetWidth;
+                        itemIcon.classList.add('show');
+                    }
+
                     cheerTimer = setTimeout(() => {
                         rig.classList.remove('item-get');
+                        itemIcon?.classList.remove('show');
                     }, 2700);
                     
                     gearResetTimer = setTimeout(() => {
@@ -200,11 +211,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Snapshot taken when the modal opens so Cancel can put everything back
+    let modalSnapshot = null;
+
+    function syncGenderButtons() {
+        genderBtns.forEach((b) => b.classList.toggle('active', b.dataset.gender === currentGender));
+    }
+
     customizeBtn?.addEventListener('click', () => {
+        modalSnapshot = {
+            gender: currentGender,
+            equipped: snapshotEquipped(),
+        };
         customizerModal?.classList.remove('hidden');
     });
 
     closeModalBtn?.addEventListener('click', () => {
+        if (modalSnapshot) {
+            currentGender = modalSnapshot.gender;
+            syncGenderButtons();
+            restoreEquipped(modalSnapshot.equipped);
+            modalSnapshot = null;
+        }
         customizerModal?.classList.add('hidden');
     });
 
@@ -218,7 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     saveCustomizationBtn?.addEventListener('click', () => {
         localStorage.setItem('char_gender', currentGender);
+        saveEquipped();
         updateAvatarSprite(currentGender);
+        modalSnapshot = null;
         customizerModal?.classList.add('hidden');
     });
 });
