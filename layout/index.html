@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Quest</title>
+    <!-- Pointing back one folder to static/style.css -->
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- LEFT PANEL: Task System -->
+        <section class="task-panel">
+            <h2>My Tasks</h2>
+            
+            <!-- Input Row -->
+            <div class="input-group">
+                <input type="text" id="task-input" placeholder="Enter a new task...">
+                <select id="task-category">
+                    <option value="general">📋 General</option>
+                    <option value="fitness">🏃 Fitness</option>
+                    <option value="coding">💻 Coding</option>
+                    <option value="creative">🎨 Creative</option>
+                </select>
+                <button id="add-btn">Add Task</button>
+            </div>
+
+            <!-- Task List Container -->
+            <ul id="task-list">
+                <!-- Tasks will appear here -->
+            </ul>
+        </section>
+
+        <!-- RIGHT PANEL: Character Window -->
+        <section class="character-panel">
+            <h2>Your Hero</h2>
+            <div id="character-display">
+                <!-- Layers stack in DOM order: props behind the avatar, wearables in front -->
+                <div class="character-stage" data-trait="general">
+                    <img id="item-computer_desk" class="gear-layer" src="../static/images/computer_desk.png" alt="Computer desk">
+                    <img id="item-easel" class="gear-layer" src="../static/images/easel.png" alt="Easel">
+                    <img id="base-avatar" src="../static/images/base.png" alt="Your hero"
+                         data-base-src="../static/images/base.png"
+                         data-buff-src="../static/images/base_buff.png">
+                    <img id="item-hoodie" class="gear-layer" src="../static/images/hoodie.png" alt="Hoodie">
+                    <img id="item-headband" class="gear-layer" src="../static/images/headband.png" alt="Headband">
+                    <img id="item-glasses" class="gear-layer" src="../static/images/glasses.png" alt="Glasses">
+                    <img id="item-beret" class="gear-layer" src="../static/images/beret.png" alt="Beret">
+                    <img id="item-dumbbells" class="gear-layer" src="../static/images/dumbbells.png" alt="Dumbbells">
+                    <img id="item-paintbrush" class="gear-layer" src="../static/images/paintbrush.png" alt="Paintbrush">
+                </div>
+
+                <p id="dominant-trait" class="dominant-trait">Dominant trait: General</p>
+                <p id="unlock-message" class="unlock-message" role="status"></p>
+
+                <div class="xp-bars">
+                    <div class="xp-row">
+                        <span class="xp-label">🏃 Fitness</span>
+                        <div class="xp-track"><div id="fitness-xp-bar" class="xp-fill"></div></div>
+                        <span id="fitness-xp-text" class="xp-text">0 / 10 XP</span>
+                    </div>
+                    <div class="xp-row">
+                        <span class="xp-label">💻 Coding</span>
+                        <div class="xp-track"><div id="coding-xp-bar" class="xp-fill"></div></div>
+                        <span id="coding-xp-text" class="xp-text">0 / 10 XP</span>
+                    </div>
+                    <div class="xp-row">
+                        <span class="xp-label">🎨 Creative</span>
+                        <div class="xp-track"><div id="creative-xp-bar" class="xp-fill"></div></div>
+                        <span id="creative-xp-text" class="xp-text">0 / 10 XP</span>
+                    </div>
+                </div>
+
+                <div id="unlocked-gear-list" class="unlocked-gear"></div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script src="../static/evolution.js"></script>
+    <script src="../static/app.js"></script>
+</body>
+</html>

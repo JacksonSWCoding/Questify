@@ -1,5 +1,19 @@
-.venv/
+# python and flask
 __pycache__/
-*.pyc
+*.py[cod]
+venv/
+.venv/
+env/
 instance/
+*.db
+*.sqlite3
+
+# environment variables
+.env
+
+# editor and operating system files
 .idea/
+.cursorrules
+.cursor/
+.DS_Store
+Thumbs.db
