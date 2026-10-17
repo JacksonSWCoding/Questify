@@ -28,3 +28,32 @@
     overflow-y: auto;
     box-sizing: border-box;
 }
+
+.shop-items {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.shop-item {
+    background-color: #2d2d44;
+    border: 1px solid #8b5cf6;
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+}
+
+.buy-button {
+    background-color: gold;
+    color: #1e1e2f;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.buy-button:hover {
+    background-color: #facc15;
+    transform: scale(1.05);
+}
