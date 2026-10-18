@@ -795,3 +795,98 @@ button:active {
     position: relative;
     z-index: 2;
 }
+
+/* =====================================
+   CASTLE BACKGROUND
+   ===================================== */
+
+/* Sunset sky */
+.character-stage.castle-background {
+    background:
+        radial-gradient(circle at 75% 25%,
+            #ffe5a0 0 9%,
+            transparent 10%),
+        linear-gradient(
+            to bottom,
+            #6675b5 0%,
+            #b18bb3 40%,
+            #e6aa81 72%,
+            #947c76 100%
+        );
+}
+
+/* Distant castle walls and towers */
+.character-stage.castle-background::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+
+    background:
+        /* Left tower roof */
+        linear-gradient(135deg, transparent 50%, #474458 50%)
+            14% 33% / 45px 40px no-repeat,
+        linear-gradient(225deg, transparent 50%, #474458 50%)
+            14% 33% / 45px 40px no-repeat,
+
+        /* Right tower roof */
+        linear-gradient(135deg, transparent 50%, #474458 50%)
+            86% 33% / 45px 40px no-repeat,
+        linear-gradient(225deg, transparent 50%, #474458 50%)
+            86% 33% / 45px 40px no-repeat,
+
+        /* Tower bodies */
+        linear-gradient(#777487, #777487)
+            14% 66% / 50px 105px no-repeat,
+        linear-gradient(#777487, #777487)
+            86% 66% / 50px 105px no-repeat,
+
+        /* Main castle wall */
+        linear-gradient(#888596, #888596)
+            center 80% / 80% 90px no-repeat;
+}
+
+/* Battlements, castle gate, and ground */
+.character-stage.castle-background::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+
+    background:
+        /* Castle battlements */
+        repeating-linear-gradient(
+            to right,
+            #555367 0 18px,
+            transparent 18px 27px
+        ) center 64% / 80% 24px no-repeat,
+
+        /* Tower windows */
+        linear-gradient(#242636, #242636)
+            14% 59% / 9px 22px no-repeat,
+        linear-gradient(#242636, #242636)
+            86% 59% / 9px 22px no-repeat,
+
+        /* Central castle gate */
+        radial-gradient(
+            ellipse at 50% 93%,
+            #302c39 0 11%,
+            transparent 11.5%
+        ),
+
+        /* Ground */
+        linear-gradient(
+            to top,
+            #425448 0%,
+            #61715a 12%,
+            transparent 25%
+        );
+}
+
+/* Keep avatar in front of castle */
+.character-stage.castle-background .character-rig {
+    position: relative;
+    z-index: 2;
+}

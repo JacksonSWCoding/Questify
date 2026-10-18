@@ -231,6 +231,43 @@ def complete_task():
     return jsonify(state)
 
 
+@app.get("/api/shop")
+def get_shop():
+    try:
+        wallet = nessie_service.wallet_snapshot()
+    except nessie_service.NessieError as exc:
+        return jsonify({"error": str(exc)}), 503
+
+    owned_ids = set(wallet["owned_cosmetics"])
+
+    categories = {
+        "red_beret": "accessories",
+        "purple_beret": "accessories",
+        "blue_hoodie": "clothes",
+        "black_hoodie": "clothes",
+        "forest_background": "backgrounds",
+        "castle_background": "backgrounds",
+    }
+
+    items = [
+        {
+            "id": item_id,
+            "name": item["name"],
+            "price": item["price"],
+            "category": categories[item_id],
+            "requires": item["requires"],
+            "owned": item_id in owned_ids,
+        }
+        for item_id, item in nessie_service.SHOP_ITEMS.items()
+    ]
+
+    return jsonify({
+        "coins": wallet["coins"],
+        "items": items,
+    })
+
+
+
 @app.post("/api/shop/buy")
 def buy_shop_item():
     data = request.get_json(silent=True) or {}
