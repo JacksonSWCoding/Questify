@@ -3,13 +3,74 @@ document.addEventListener('DOMContentLoaded', () => {
     const categorySelect = document.getElementById('task-category');
     const addBtn = document.getElementById('add-btn');
     const taskList = document.getElementById('task-list');
+    const completedTaskList = document.getElementById('completed-task-list');
+    const completedQuests = document.getElementById('completed-quests');
+    const completedCount = document.getElementById('completed-count');
+    const taskStatus = document.getElementById('task-status');
+    const appStatus = document.getElementById('app-status');
+    const deployNotice = document.getElementById('deploy-notice');
     const resetBtn = document.getElementById('reset-progress-btn');
     const baseAvatar = document.getElementById('base-avatar');
     const outfitLayer = document.getElementById('outfit-layer');
 
+    const TASK_CATEGORIES = ['general', 'fitness', 'coding', 'creative'];
+    let statusDismissTimer = null;
+
+    function showAppStatus(message, type = 'error', autoDismissMs = 8000) {
+        if (!appStatus || !message) {
+            return;
+        }
+
+        clearTimeout(statusDismissTimer);
+        appStatus.textContent = message;
+        appStatus.classList.remove('is-error', 'is-warning', 'is-info');
+        appStatus.classList.add(
+            type === 'warning' ? 'is-warning' : type === 'info' ? 'is-info' : 'is-error'
+        );
+        appStatus.hidden = false;
+
+        if (autoDismissMs > 0) {
+            statusDismissTimer = setTimeout(() => {
+                appStatus.hidden = true;
+                appStatus.textContent = '';
+            }, autoDismissMs);
+        }
+    }
+
+    function clearAppStatus() {
+        clearTimeout(statusDismissTimer);
+        if (appStatus) {
+            appStatus.hidden = true;
+            appStatus.textContent = '';
+        }
+    }
+
+    function showTaskError(message) {
+        if (taskStatus) {
+            taskStatus.textContent = message;
+        }
+    }
+
+    function clearTaskError() {
+        if (taskStatus) {
+            taskStatus.textContent = '';
+        }
+    }
+
+    window.showAppStatus = showAppStatus;
+
+    const isLocalHost =
+        location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+    if (deployNotice && !isLocalHost) {
+        deployNotice.hidden = false;
+    }
+
     let currentGender = 'male';
     let pendingGender = currentGender;
     let tasks = [];
+    let completedTasks = [];
+    let editingTaskId = null;
     let addingTask = false;
     let resetting = false;
 
@@ -124,15 +185,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 data = JSON.parse(text);
             } catch (parseError) {
                 throw new Error(
-                    `The server sent an unexpected response (${response.status}) for ` +
-                    `${options.method || 'GET'} ${url}. ` +
-                    'Is the Flask server up to date and running?'
+                    `Something went wrong (${response.status}). Please refresh and try again.`
                 );
             }
         }
 
         if (!response.ok) {
-            throw new Error(data.error || `The request failed (${response.status})`);
+            throw new Error(
+                data.error || `Something went wrong. Please try again (${response.status}).`
+            );
         }
 
         return data;
@@ -144,9 +205,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const savedTasks = await apiRequest('/api/tasks');
             tasks = savedTasks.filter(task => !task.completed);
+            completedTasks = savedTasks.filter(task => task.completed);
+            clearTaskError();
             renderTasks();
+            renderCompletedTasks();
         } catch (error) {
-            alert(`Could not load tasks: ${error.message}`);
+            showTaskError(`Could not load quests: ${error.message}`);
         } finally {
             addBtn.disabled = false;
         }
@@ -171,9 +235,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tasks.push(task);
             taskInput.value = '';
+            clearTaskError();
             renderTasks();
         } catch (error) {
-            alert(`Could not add task: ${error.message}`);
+            showTaskError(`Could not add quest: ${error.message}`);
         } finally {
             addingTask = false;
             addBtn.disabled = false;
@@ -205,12 +270,19 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             pendingTasks.delete(id);
             renderTasks();
-            alert(`Could not complete task: ${error.message}`);
+            showTaskError(`Could not complete quest: ${error.message}`);
             return;
         }
 
+        const completed = result.task || tasks.find(task => task.id === id);
+        if (completed) {
+            completedTasks.unshift({ ...completed, completed: true });
+        }
+
         tasks = tasks.filter(task => task.id !== id);
+        clearTaskError();
         renderTasks();
+        renderCompletedTasks();
 
         try {
             if (result && result.xp) {
@@ -233,33 +305,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function editTask(id) {
-        if (resetting || pendingTasks.has(id)) return;
-
-        const task = tasks.find(task => task.id === id);
-        if (!task) return;
-
-        const enteredTitle = prompt('Edit task title:', task.title);
-        if (enteredTitle === null) return;
-
-        const title = enteredTitle.trim();
-
-        if (!title) {
-            alert('Task title is required.');
+    function startEditTask(id) {
+        if (resetting || pendingTasks.has(id)) {
             return;
         }
 
-        const enteredCategory = prompt(
-            'Category: general, fitness, coding, or creative',
-            task.category
-        );
+        editingTaskId = id;
+        renderTasks();
+    }
 
-        if (enteredCategory === null) return;
+    function cancelEditTask() {
+        editingTaskId = null;
+        renderTasks();
+    }
 
-        const category = enteredCategory.trim().toLowerCase();
+    async function saveEditTask(id, title, category) {
+        if (!title) {
+            showTaskError('Quest title is required.');
+            return;
+        }
 
-        if (!['general', 'fitness', 'coding', 'creative'].includes(category)) {
-            alert('Choose general, fitness, coding, or creative.');
+        if (!TASK_CATEGORIES.includes(category)) {
+            showTaskError('Choose a valid category.');
             return;
         }
 
@@ -275,8 +342,10 @@ document.addEventListener('DOMContentLoaded', () => {
             tasks = tasks.map(task => {
                 return task.id === id ? updatedTask : task;
             });
+            editingTaskId = null;
+            clearTaskError();
         } catch (error) {
-            alert(`Could not edit task: ${error.message}`);
+            showTaskError(`Could not save quest: ${error.message}`);
         } finally {
             pendingTasks.delete(id);
             renderTasks();
@@ -297,8 +366,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             tasks = tasks.filter(task => task.id !== id);
+            if (editingTaskId === id) {
+                editingTaskId = null;
+            }
+            clearTaskError();
         } catch (error) {
-            alert(`Could not delete task: ${error.message}`);
+            showTaskError(`Could not delete quest: ${error.message}`);
         } finally {
             pendingTasks.delete(id);
             renderTasks();
@@ -309,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (resetting || loadingCustomization || savingCustomization) return;
 
         if (pendingTasks.size > 0 || addingTask) {
-            alert('Wait for the current task update to finish.');
+            showAppStatus('Wait for the current quest update to finish.', 'info', 5000);
             return;
         }
 
@@ -336,11 +409,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             updateCharacterVisuals(resetState);
 
+            completedTasks = [];
+            renderCompletedTasks();
+
             if (typeof window.refreshCustomizerInventory === 'function') {
                 await window.refreshCustomizerInventory();
             }
+            clearAppStatus();
+            clearTaskError();
         } catch (error) {
-            alert(`Could not reset progress: ${error.message}`);
+            showAppStatus(`Could not reset progress: ${error.message}`, 'error');
         } finally {
             resetting = false;
             addBtn.disabled = false;
@@ -353,11 +431,99 @@ document.addEventListener('DOMContentLoaded', () => {
         return category.charAt(0).toUpperCase() + category.slice(1);
     }
 
+    function renderCompletedTasks() {
+        if (!completedTaskList || !completedQuests || !completedCount) {
+            return;
+        }
+
+        completedTaskList.replaceChildren();
+        completedCount.textContent = String(completedTasks.length);
+        completedQuests.hidden = completedTasks.length === 0;
+
+        completedTasks.forEach(task => {
+            const li = document.createElement('li');
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = task.title;
+
+            const tag = document.createElement('span');
+            tag.className = `badge badge-${task.category}`;
+            tag.textContent = formatCategory(task.category);
+
+            li.append(textSpan, tag);
+            completedTaskList.appendChild(li);
+        });
+    }
+
     function renderTasks() {
         taskList.replaceChildren();
 
         tasks.forEach(task => {
             const li = document.createElement('li');
+
+            if (editingTaskId === task.id) {
+                const row = document.createElement('div');
+                row.className = 'task-edit-row';
+
+                const titleInput = document.createElement('input');
+                titleInput.type = 'text';
+                titleInput.value = task.title;
+                titleInput.setAttribute('aria-label', 'Edit quest title');
+
+                const categoryInput = document.createElement('select');
+                categoryInput.setAttribute('aria-label', 'Edit quest category');
+                TASK_CATEGORIES.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = formatCategory(category);
+                    if (category === task.category) {
+                        option.selected = true;
+                    }
+                    categoryInput.appendChild(option);
+                });
+
+                const actions = document.createElement('div');
+                actions.className = 'task-edit-actions';
+
+                const saveBtn = document.createElement('button');
+                saveBtn.type = 'button';
+                saveBtn.textContent = 'Save';
+                saveBtn.addEventListener('click', () => {
+                    saveEditTask(
+                        task.id,
+                        titleInput.value.trim(),
+                        categoryInput.value
+                    );
+                });
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.addEventListener('click', cancelEditTask);
+
+                actions.append(saveBtn, cancelBtn);
+                row.append(titleInput, categoryInput, actions);
+                titleInput.addEventListener('keydown', event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        saveEditTask(
+                            task.id,
+                            titleInput.value.trim(),
+                            categoryInput.value
+                        );
+                    }
+
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        cancelEditTask();
+                    }
+                });
+
+                li.appendChild(row);
+                taskList.appendChild(li);
+                titleInput.focus();
+                return;
+            }
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
@@ -380,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
             editBtn.textContent = 'Edit';
             editBtn.setAttribute('aria-label', `Edit ${task.title}`);
             editBtn.disabled = resetting || pendingTasks.has(task.id);
-            editBtn.addEventListener('click', () => editTask(task.id));
+            editBtn.addEventListener('click', () => startEditTask(task.id));
 
             const deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
@@ -473,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return true;
         } catch (error) {
-            alert(`Could not load character choice: ${error.message}`);
+            showAppStatus(`Could not load character: ${error.message}`, 'error');
             return false;
         } finally {
             loadingCustomization = false;
@@ -548,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateAvatarSprite(currentGender);
             customizerModal?.classList.add('hidden');
         } catch (error) {
-            alert(`Could not save character choice: ${error.message}`);
+            showAppStatus(`Could not save character: ${error.message}`, 'error');
         } finally {
             savingCustomization = false;
             updateCustomizationControls();

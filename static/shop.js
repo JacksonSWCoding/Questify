@@ -50,22 +50,13 @@ let shopItems = [...DEFAULT_SHOP_ITEMS];
 let unlockedGear = [];
 let ownedCosmeticIds = new Set();
 
-function readSavedEquipment() {
-    try {
-        return JSON.parse(localStorage.getItem('questify_equipment') || '{}');
-    } catch (error) {
-        console.warn('Could not read saved shop equipment, resetting.', error);
-        return {};
-    }
-}
-
-const savedEquipment = readSavedEquipment();
-
 let equippedCosmetics = {
-    accessories: normalizeShopItemId(savedEquipment.accessories ?? null),
-    clothes: normalizeShopItemId(savedEquipment.clothes ?? null),
-    backgrounds: normalizeShopItemId(savedEquipment.backgrounds ?? null)
+    accessories: null,
+    clothes: null,
+    backgrounds: null
 };
+
+let shopEquipmentSynced = false;
 
 let coins = 0;
 let selectedCategory = 'all';
@@ -162,6 +153,11 @@ async function loadUnlockedGear() {
                 })
             );
         }
+
+        if (player.equipped_cosmetics) {
+            applyEquippedCosmeticsFromServer(player.equipped_cosmetics);
+            shopEquipmentSynced = true;
+        }
     } catch (error) {
         console.warn('Could not load character state for gear requirements:', error);
     }
@@ -193,9 +189,16 @@ async function loadShop() {
         showCoins(coins);
         if (data.equipped_cosmetics) {
             applyEquippedCosmeticsFromServer(data.equipped_cosmetics);
+            shopEquipmentSynced = true;
         }
     } catch (error) {
         console.error('Could not load shop from /api/shop, using fallback items:', error);
+        if (typeof window.showAppStatus === 'function') {
+            window.showAppStatus(
+                'Could not load the shop. Showing default items — try again shortly.',
+                'warning'
+            );
+        }
     } finally {
         shopItems.forEach(item => {
             item.owned = Boolean(item.owned || ownedCosmeticIds.has(item.id));
@@ -244,7 +247,9 @@ async function purchaseItem(itemId) {
         item.owned = true;
         showCoins(coins);
     } catch (error) {
-        alert(`Could not purchase item: ${error.message}`);
+        if (typeof window.showAppStatus === 'function') {
+            window.showAppStatus(`Could not purchase item: ${error.message}`, 'error');
+        }
     } finally {
         purchasing = false;
         renderShop();
@@ -507,8 +512,11 @@ function initShop() {
         });
     });
 
-    updateAvatarBackground();
-    loadShop();
+    loadShop().then(() => {
+        if (!shopEquipmentSynced) {
+            updateAvatarBackground();
+        }
+    });
 }
 
 function bootShop() {

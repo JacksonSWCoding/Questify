@@ -424,6 +424,19 @@ function updateCharacterVisuals(state) {
             wallet.textContent = state.coins + ' coins';
         }
     }
+
+    const walletStatus = document.getElementById('wallet-status');
+    if (walletStatus) {
+        if (state.wallet_error) {
+            walletStatus.textContent =
+                'Wallet unavailable — coins and shop purchases may not work. ' +
+                state.wallet_error;
+            walletStatus.hidden = false;
+        } else {
+            walletStatus.textContent = '';
+            walletStatus.hidden = true;
+        }
+    }
 }
 
 async function loadCharacterState() {
@@ -443,10 +456,16 @@ async function loadCharacterState() {
 
         if (message) {
             message.textContent =
-                'Could not load hero progress. ' +
-                'Check that the server is running and refresh.';
+                'Could not load hero progress. Refresh the page and try again.';
 
             message.classList.add('visible');
+        }
+
+        if (typeof window.showAppStatus === 'function') {
+            window.showAppStatus(
+                'Could not load hero progress. Refresh and try again.',
+                'error'
+            );
         }
 
         console.error(error);
