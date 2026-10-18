@@ -6,9 +6,9 @@ import threading
 CATEGORIES = ("fitness", "coding", "creative", "general")
 
 UNLOCK_THRESHOLDS = {
-    "fitness": [(10, "headband"), (30, "dumbbells"), (60, "muscle_upgrade")],
-    "coding": [(10, "glasses"), (30, "hoodie"), (60, "computer_desk")],
-    "creative": [(10, "beret"), (30, "paintbrush"), (60, "easel")],
+    "fitness": [(10, "black_shoes"), (30, "headband"), (60, "dagger")],
+    "coding": [(10, "glasses"), (30, "cape"), (60, "wand")],
+    "creative": [(10, "cap"), (30, "bauldron"), (60, "crystal")],
 }
 
 CATEGORY_KEYWORDS = {
@@ -34,7 +34,6 @@ CATEGORY_KEYWORDS = {
 
 DEMO_XP_PRESETS = {
     "reset": {"fitness": 0, "coding": 0, "creative": 0, "general": 0},
-    # One more 10 XP task in each category triggers the next unlock.
     "demo": {"fitness": 50, "coding": 20, "creative": 0, "general": 5},
     "max": {"fitness": 60, "coding": 60, "creative": 60, "general": 0},
 }

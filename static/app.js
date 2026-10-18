@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const baseAvatar = document.getElementById('base-avatar');
     const outfitLayer = document.getElementById('outfit-layer');
 
-    let currentGender = localStorage.getItem('char_gender') === 'female' ? 'female' : 'male';
+    let currentGender = 'male';
     let pendingGender = currentGender;
 
     function updateAvatarSprite(gender) {
@@ -15,11 +15,16 @@ document.addEventListener('DOMContentLoaded', () => {
             baseAvatar.classList.remove('sprite-male', 'sprite-female');
             baseAvatar.classList.add(`sprite-${gender}`);
         }
+
         if (outfitLayer) {
-            outfitLayer.classList.remove('sprite-outfit-male', 'sprite-outfit-female');
+            outfitLayer.classList.remove(
+                'sprite-outfit-male',
+                'sprite-outfit-female'
+            );
             outfitLayer.classList.add(`sprite-outfit-${gender}`);
         }
     }
+
     updateAvatarSprite(currentGender);
 
     let tasks = [];
@@ -33,8 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let gearResetTimer = null;
 
     if (rig && stage) {
-        new MutationObserver((records) => {
-            records.forEach((record) => {
+        new MutationObserver(records => {
+            records.forEach(record => {
                 const target = record.target;
                 const oldValues = (record.oldValue || '').split(/\s+/);
 
@@ -45,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ) {
                     const newlyUnlockedItem = target;
 
-                    document.querySelectorAll('.gear-layer').forEach((gear) => {
+                    document.querySelectorAll('.gear-layer').forEach(gear => {
                         if (gear !== newlyUnlockedItem) {
                             gear.classList.remove('just-unlocked');
                         }
@@ -56,23 +61,39 @@ document.addEventListener('DOMContentLoaded', () => {
                     rig.classList.remove('item-get');
                     void rig.offsetWidth;
                     rig.classList.add('item-get');
+
                     const allGears = document.querySelectorAll('.gear-layer');
-                    allGears.forEach((gear) => {
+                    allGears.forEach(gear => {
                         if (gear !== newlyUnlockedItem) {
                             gear.style.setProperty('opacity', '0', 'important');
-                            gear.style.setProperty('visibility', 'hidden', 'important');
+                            gear.style.setProperty(
+                                'visibility',
+                                'hidden',
+                                'important'
+                            );
                         }
                     });
 
                     clearTimeout(cheerTimer);
                     clearTimeout(gearResetTimer);
 
+                    // Hold the new item up overhead
+                    const itemIcon = document.getElementById('item-get-icon');
+                    if (itemIcon) {
+                        const itemId = newlyUnlockedItem.id.replace('item-', '');
+                        itemIcon.innerHTML = (typeof GEAR_ICONS !== 'undefined' && GEAR_ICONS[itemId]) || '✨';
+                        itemIcon.classList.remove('show');
+                        void itemIcon.offsetWidth;
+                        itemIcon.classList.add('show');
+                    }
+
                     cheerTimer = setTimeout(() => {
                         rig.classList.remove('item-get');
+                        itemIcon?.classList.remove('show');
                     }, 2700);
 
                     gearResetTimer = setTimeout(() => {
-                        allGears.forEach((gear) => {
+                        allGears.forEach(gear => {
                             gear.style.removeProperty('opacity');
                             gear.style.removeProperty('visibility');
                         });
@@ -83,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             subtree: true,
             attributes: true,
             attributeFilter: ['class'],
-            attributeOldValue: true,
+            attributeOldValue: true
         });
     }
 
@@ -96,10 +117,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const data = await response.json();
+        // Read as text first: if the server sends an HTML error page (missing route,
+        // crash, old server still running) we can explain it instead of showing
+        // "Unexpected token '<'".
+        const text = await response.text();
+        let data = {};
+
+        if (text) {
+            try {
+                data = JSON.parse(text);
+            } catch (parseError) {
+                throw new Error(
+                    `The server sent an unexpected response (${response.status}) for ` +
+                    `${options.method || 'GET'} ${url}. ` +
+                    'Is the Flask server up to date and running?'
+                );
+            }
+        }
 
         if (!response.ok) {
-            throw new Error(data.error || 'The request failed');
+            throw new Error(data.error || `The request failed (${response.status})`);
         }
 
         return data;
@@ -180,7 +217,14 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
 
         try {
-            await loadCharacterState();
+            // The complete endpoint returns the updated hero state, including
+            // "newly_unlocked". Use it directly so the unlock animation plays; a plain
+            // GET /api/character-state would report newly_unlocked as empty.
+            if (result && result.xp) {
+                updateCharacterVisuals(result);
+            } else {
+                await loadCharacterState();
+            }
         } finally {
             pendingTasks.delete(id);
         }
@@ -228,7 +272,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const confirmed = confirm(
             'Reset all hero XP and unlocked gear? ' +
-            'Tasks, coins, purchases, and character choice will stay. Completed tasks remain completed.'
+            'Tasks, coins, purchases, and character choice will stay. ' +
+            'Completed tasks remain completed.'
         );
 
         if (!confirmed) return;
@@ -282,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
+            deleteBtn.className = 'delete-btn';
             deleteBtn.textContent = 'Delete';
             deleteBtn.setAttribute('aria-label', `Delete ${task.title}`);
             deleteBtn.disabled = resetting || pendingTasks.has(task.id);
@@ -308,45 +354,149 @@ document.addEventListener('DOMContentLoaded', () => {
         resetBtn.addEventListener('click', resetProgress);
     }
 
-    loadTasks();
     const customizeBtn = document.getElementById('customize-btn');
     const customizerModal = document.getElementById('customizer-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
-    const saveCustomizationBtn = document.getElementById('save-customization-btn');
+    const saveCustomizationBtn = document.getElementById(
+        'save-customization-btn'
+    );
     const genderBtns = document.querySelectorAll('.gender-btn');
 
-    genderBtns.forEach(btn => {
-        if (btn.dataset.gender === currentGender) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
+    let loadingCustomization = false;
+    let savingCustomization = false;
+    let customizationLoaded = false;
 
-    customizeBtn?.addEventListener('click', () => {
-        pendingGender = currentGender;
+    let modalSnapshot = null;
+
+    function updateCustomizationControls() {
+        const busy = loadingCustomization || savingCustomization;
+
+        if (customizeBtn) customizeBtn.disabled = busy;
+        if (closeModalBtn) closeModalBtn.disabled = busy;
+
+        if (saveCustomizationBtn) {
+            saveCustomizationBtn.disabled = busy;
+        }
+
         genderBtns.forEach(btn => {
+            btn.disabled = busy || !customizationLoaded;
+            btn.classList.toggle(
+                'active',
+                btn.dataset.gender === pendingGender
+            );
+        });
+    }
+
+    function syncGenderButtons() {
+        genderBtns.forEach((btn) => {
             btn.classList.toggle('active', btn.dataset.gender === currentGender);
         });
+    }
+
+    async function loadCustomization() {
+        if (loadingCustomization || savingCustomization) return false;
+
+        loadingCustomization = true;
+        customizationLoaded = false;
+        updateCustomizationControls();
+
+        try {
+            const player = await apiRequest('/api/player');
+
+            if (!['male', 'female'].includes(player.character_model)) {
+                throw new Error(
+                    'The server returned an invalid character model'
+                );
+            }
+
+            currentGender = player.character_model;
+            pendingGender = currentGender;
+            updateAvatarSprite(currentGender);
+            customizationLoaded = true;
+
+            return true;
+        } catch (error) {
+            alert(`Could not load character choice: ${error.message}`);
+            return false;
+        } finally {
+            loadingCustomization = false;
+            updateCustomizationControls();
+        }
+    }
+
+    customizeBtn?.addEventListener('click', async () => {
+        modalSnapshot = {
+            gender: currentGender,
+            equipped: snapshotEquipped(),
+        };
         customizerModal?.classList.remove('hidden');
+        await loadCustomization();
     });
 
     closeModalBtn?.addEventListener('click', () => {
+        if (loadingCustomization || savingCustomization) return;
+
+        if (modalSnapshot) {
+            currentGender = modalSnapshot.gender;
+            pendingGender = currentGender;
+            syncGenderButtons();
+            restoreEquipped(modalSnapshot.equipped);
+            saveEquipped(); // keep the stored gear in sync with what Cancel restored
+            updateAvatarSprite(currentGender);
+            modalSnapshot = null;
+        }
+
         customizerModal?.classList.add('hidden');
     });
 
     genderBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            genderBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            if (
+                loadingCustomization ||
+                savingCustomization ||
+                !customizationLoaded
+            ) return;
+
             pendingGender = btn.dataset.gender;
+            updateCustomizationControls();
         });
     });
 
-    saveCustomizationBtn?.addEventListener('click', () => {
-        currentGender = pendingGender;
-        localStorage.setItem('char_gender', currentGender);
-        updateAvatarSprite(currentGender);
-        customizerModal?.classList.add('hidden');
+    saveCustomizationBtn?.addEventListener('click', async () => {
+        if (loadingCustomization || savingCustomization) return;
+
+        savingCustomization = true;
+        updateCustomizationControls();
+
+        try {
+            // Gear choices are stored in the browser, so they are always saved, even
+            // if the character-choice request below fails.
+            saveEquipped();
+
+            // Only talk to the server when the body type actually changed.
+            if (customizationLoaded && pendingGender !== currentGender) {
+                const result = await apiRequest('/api/player/customization', {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        character_model: pendingGender
+                    })
+                });
+
+                currentGender = result.character_model;
+                pendingGender = currentGender;
+                updateAvatarSprite(currentGender);
+            }
+
+            modalSnapshot = null;
+            customizerModal?.classList.add('hidden');
+        } catch (error) {
+            alert(`Could not save character choice: ${error.message}`);
+        } finally {
+            savingCustomization = false;
+            updateCustomizationControls();
+        }
     });
+
+    loadTasks();
+    loadCustomization();
 });
