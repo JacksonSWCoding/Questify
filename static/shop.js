@@ -283,6 +283,7 @@ function applyShopWearables() {
     }
 }
 
+
 function updateAvatarBackground() {
     const characterStage = document.querySelector('.character-stage');
     if (!characterStage) {
