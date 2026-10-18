@@ -20,7 +20,7 @@ const LEGACY_SHOP_ITEM_IDS = {
 
 function normalizeShopItemId(itemId) {
     if (!itemId) {
-        return itemId;
+        return null;
     }
 
     return LEGACY_SHOP_ITEM_IDS[itemId] || itemId;
@@ -73,14 +73,13 @@ let loading = false;
 let purchasing = false;
 
 function showCoins(amount) {
-    const label = `${amount} coins`;
     if (coinDisplay) {
-        coinDisplay.textContent = label;
+        coinDisplay.textContent = String(amount);
     }
 
     const wallet = document.getElementById('wallet-balance');
     if (wallet) {
-        wallet.textContent = label;
+        wallet.textContent = `${amount} coins`;
     }
 }
 
@@ -142,25 +141,26 @@ async function loadUnlockedGear() {
         }
 
         const player = await response.json();
-            unlockedGear =
-                player.available_equipment ||
-                player.unlocked_items ||
-                [];
+        unlockedGear =
+            player.available_equipment ||
+            player.unlocked_items ||
+            [];
 
         if (player.coins !== undefined && player.coins !== null) {
+            coins = player.coins;
             showCoins(player.coins);
         }
 
         if (Array.isArray(player.owned_cosmetics)) {
-                ownedCosmeticIds = new Set(
-                    player.owned_cosmetics.map(entry => {
-                        const raw =
-                            typeof entry === 'string'
-                                ? entry
-                                : (entry.id ?? entry.item_id);
-                        return normalizeShopItemId(raw);
-                    })
-                );
+            ownedCosmeticIds = new Set(
+                player.owned_cosmetics.map(entry => {
+                    const raw =
+                        typeof entry === 'string'
+                            ? entry
+                            : (entry.id ?? entry.item_id);
+                    return normalizeShopItemId(raw);
+                })
+            );
         }
     } catch (error) {
         console.warn('Could not load character state for gear requirements:', error);
@@ -198,9 +198,7 @@ async function loadShop() {
         console.error('Could not load shop from /api/shop, using fallback items:', error);
     } finally {
         shopItems.forEach(item => {
-            if (ownedCosmeticIds.has(item.id)) {
-                item.owned = true;
-            }
+            item.owned = Boolean(item.owned || ownedCosmeticIds.has(item.id));
         });
         loading = false;
         renderShop();
@@ -241,7 +239,8 @@ async function purchaseItem(itemId) {
             });
         }
 
-        coins = result.coins ?? (coins - item.price);
+        coins = result.coins ?? Math.max(0, coins - item.price);
+        ownedCosmeticIds.add(normalizeShopItemId(item.id));
         item.owned = true;
         showCoins(coins);
     } catch (error) {
@@ -254,7 +253,6 @@ async function purchaseItem(itemId) {
     await loadShop();
 }
 
-// Shop item id -> gear layer id (matches static/images/*.png)
 const SHOP_EQUIP_LAYER = {
     red_hat: 'item-red_hat',
     blue_hat: 'item-blue_hat',
@@ -274,6 +272,13 @@ function applyShopWearables() {
         document
             .getElementById(SHOP_EQUIP_LAYER[accessory])
             ?.classList.add('equipped');
+
+        // Hide evolution head items while a shop hat is worn so they don't clip
+        ['item-wizard_hat', 'item-headband', 'item-cap'].forEach(headId => {
+            document.getElementById(headId)?.classList.remove('equipped');
+        });
+    } else if (typeof window.applyEquipment === 'function') {
+        window.applyEquipment();
     }
 
     if (clothes && SHOP_EQUIP_LAYER[clothes]) {
@@ -282,7 +287,6 @@ function applyShopWearables() {
             ?.classList.add('equipped');
     }
 }
-
 
 function updateAvatarBackground() {
     const characterStage = document.querySelector('.character-stage');
@@ -301,17 +305,53 @@ function updateAvatarBackground() {
     applyShopWearables();
 }
 
-async function equipItem(itemId) {
+async function toggleEquipItem(itemId) {
     const item = shopItems.find(product => product.id === itemId);
     if (!item || !item.owned) {
         return;
     }
 
-    equippedCosmetics[item.category] = normalizeShopItemId(item.id);
+    const normalizedId = normalizeShopItemId(item.id);
+    const currentlyEquipped = equippedCosmetics[item.category] === normalizedId;
+
+    // Toggle: if already equipped, unequip (set to null); otherwise equip it
+    equippedCosmetics[item.category] = currentlyEquipped ? null : normalizedId;
+
+    // If equipping a shop hat, clear any pending evolution head gear so they don't overlap
+    if (!currentlyEquipped && item.category === 'accessories' && typeof window.clearEvolutionHeadSlot === 'function') {
+        window.clearEvolutionHeadSlot();
+    }
+
     localStorage.setItem('questify_equipment', JSON.stringify(equippedCosmetics));
     updateAvatarBackground();
     renderShopInventory();
     await persistEquippedCosmetics();
+}
+
+function unequipShopCategory(category) {
+    if (!equippedCosmetics[category]) {
+        return;
+    }
+    equippedCosmetics[category] = null;
+    localStorage.setItem('questify_equipment', JSON.stringify(equippedCosmetics));
+    updateAvatarBackground();
+    renderShopInventory();
+    persistEquippedCosmetics();
+}
+
+function resetShopCosmetics() {
+    ownedCosmeticIds.clear();
+    shopItems.forEach(item => {
+        item.owned = false;
+    });
+    equippedCosmetics = {
+        accessories: null,
+        clothes: null,
+        backgrounds: null
+    };
+    localStorage.removeItem('questify_equipment');
+    updateAvatarBackground();
+    renderShop();
 }
 
 function renderShopInventory() {
@@ -325,7 +365,8 @@ function renderShopInventory() {
 
     if (ownedItems.length === 0) {
         const message = document.createElement('p');
-        message.textContent = 'No items purchased yet.';
+        message.className = 'equipment-note';
+        message.textContent = 'No items purchased yet. Visit the Shop to buy cosmetics!';
         inventoryContainer.appendChild(message);
     } else {
         ownedItems.forEach(item => {
@@ -333,19 +374,19 @@ function renderShopInventory() {
             const isEquipped = equippedCosmetics[item.category] === itemId;
 
             const card = document.createElement('div');
-            card.className = 'shop-item';
+            card.className = 'shop-item' + (isEquipped ? ' is-equipped' : '');
 
             const title = document.createElement('h3');
             title.textContent = item.name;
 
             const equipBtn = document.createElement('button');
             equipBtn.type = 'button';
-            equipBtn.className = 'equip-button';
+            equipBtn.className = 'equip-button' + (isEquipped ? ' equipped' : '');
             equipBtn.dataset.id = item.id;
-            equipBtn.disabled = isEquipped;
-            equipBtn.textContent = isEquipped ? 'Equipped' : 'Equip';
+            equipBtn.setAttribute('aria-pressed', String(isEquipped));
+            equipBtn.textContent = isEquipped ? '✓ Equipped · Unequip' : 'Equip';
 
-            equipBtn.addEventListener('click', () => equipItem(item.id));
+            equipBtn.addEventListener('click', () => toggleEquipItem(item.id));
 
             card.append(title, equipBtn);
             inventoryContainer.appendChild(card);
@@ -368,12 +409,13 @@ function renderShop() {
         const isUnlocked = !item.requires || unlockedGear.includes(item.requires);
 
         const card = document.createElement('div');
-        card.className = 'shop-item';
+        card.className = 'shop-item' + (item.owned ? ' owned-card' : '');
 
         const title = document.createElement('h3');
         title.textContent = item.name;
 
         const price = document.createElement('p');
+        price.className = 'shop-price';
         price.textContent = `${item.price} coins`;
 
         const button = document.createElement('button');
@@ -382,12 +424,12 @@ function renderShop() {
         button.dataset.id = item.id;
 
         if (item.owned) {
-            button.textContent = 'Owned';
+            button.textContent = '✓ Owned';
         } else if (!isUnlocked) {
             const gearName =
                 (typeof GEAR_LABELS !== 'undefined' && GEAR_LABELS[item.requires]) ||
                 item.requires;
-            button.textContent = `Requires ${gearName}`;
+            button.textContent = `🔒 Requires ${gearName}`;
         } else if (coins < item.price) {
             button.textContent = 'Not enough coins';
         } else {
@@ -485,4 +527,7 @@ if (document.readyState === 'loading') {
 
 window.openQuestifyShop = openShop;
 window.refreshCustomizerInventory = refreshCustomizerInventory;
+window.unequipShopCategory = unequipShopCategory;
+window.resetShopCosmetics = resetShopCosmetics;
+window.applyShopWearables = applyShopWearables;
 })();
