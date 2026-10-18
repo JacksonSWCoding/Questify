@@ -24,21 +24,31 @@ async function shopRequest(url, options = {}) {
 }
 
 function updateCoins() {
-    if (coinDisplay) coinDisplay.textContent = coins;
+    if (coinDisplay) {
+        coinDisplay.textContent = coins;
+    }
+
     const wallet = document.getElementById('wallet-balance');
-    if (wallet) wallet.textContent = `${coins} coins`;
+
+    if (wallet) {
+        wallet.textContent = `${coins} coins`;
+    }
 }
 
 async function loadShop() {
     if (loading || purchasing) return;
+
     loading = true;
     available = false;
     renderShop();
+
     try {
         const data = await shopRequest('/api/shop');
+
         coins = data.coins;
         shopItems = data.items;
         available = true;
+
         updateCoins();
     } catch (error) {
         alert(`Could not load shop: ${error.message}`);
@@ -52,10 +62,8 @@ async function purchaseItem(itemId) {
     if (!available || loading || purchasing) return;
 
     const item = shopItems.find(item => item.id === itemId);
-    if (!item || item.owned) return;
 
-    const isUnlocked = item.unlocked;
-    if (!isUnlocked) return;
+    if (!item || item.owned || !item.unlocked) return;
 
     if (!confirm(`Buy ${item.name} for ${item.price} coins?`)) return;
 
@@ -67,8 +75,10 @@ async function purchaseItem(itemId) {
             `/api/shop/${itemId}/purchase`,
             { method: 'POST' }
         );
+
         coins = result.coins;
         item.owned = true;
+
         updateCoins();
     } catch (error) {
         alert(`Could not purchase item: ${error.message}`);
@@ -86,20 +96,23 @@ function renderShop() {
 
     if (!available) {
         const message = document.createElement('p');
+
         message.textContent = loading
             ? 'Loading shop...'
             : 'Shop unavailable. Close and reopen the shop to retry.';
+
         shopContainer.appendChild(message);
         return;
     }
 
     const visibleItems = shopItems.filter(item => {
-        return selectedCategory === 'all' || item.category === selectedCategory;
+        return (
+            selectedCategory === 'all' ||
+            item.category === selectedCategory
+        );
     });
 
     visibleItems.forEach(item => {
-        const isUnlocked = item.unlocked;
-
         const card = document.createElement('div');
         card.className = 'shop-item';
 
@@ -116,7 +129,7 @@ function renderShop() {
 
         if (item.owned) {
             button.textContent = 'Owned ✓';
-        } else if (!isUnlocked) {
+        } else if (!item.unlocked) {
             button.textContent = `🔒 Requires ${item.requires}`;
         } else if (coins < item.price) {
             button.textContent = 'Not enough coins';
@@ -129,10 +142,12 @@ function renderShop() {
             loading ||
             purchasing ||
             item.owned ||
-            !isUnlocked ||
+            !item.unlocked ||
             coins < item.price;
 
-        button.addEventListener('click', () => purchaseItem(item.id));
+        button.addEventListener('click', () => {
+            purchaseItem(item.id);
+        });
 
         card.append(title, price, button);
         shopContainer.appendChild(card);
@@ -143,10 +158,10 @@ function renderShop() {
     if (ownedItems.length === 0) {
         const message = document.createElement('p');
         message.textContent = 'No items purchased yet.';
+
         inventoryContainer.appendChild(message);
     } else {
         ownedItems.forEach(item => {
-
             const card = document.createElement('div');
             card.className = 'shop-item';
 
@@ -155,6 +170,7 @@ function renderShop() {
 
             const status = document.createElement('p');
             status.textContent = 'Owned ✓';
+
             card.append(title, status);
             inventoryContainer.appendChild(card);
         });

@@ -497,7 +497,8 @@ def update_customization():
 
             selected_items = set(equipment)
             selected_slots = [
-                EQUIPMENT_SLOTS[item] for item in selected_items
+                EQUIPMENT_SLOTS[item]
+                for item in selected_items
             ]
 
             if len(selected_slots) != len(set(selected_slots)):
@@ -529,6 +530,7 @@ def update_customization():
 def character_state():
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.execute("BEGIN")
+
         xp = shop_progress(connection)
         equipped = saved_equipment(connection)
 

@@ -96,6 +96,7 @@ function setEquipmentBusy(busy) {
 function beginEquipmentEdit() {
     editingEquipment = true;
     pendingEquipment = new Set(savedEquipment);
+
     applyEquipment();
     renderEquipment();
 }
@@ -103,6 +104,7 @@ function beginEquipmentEdit() {
 function cancelEquipmentEdit() {
     editingEquipment = false;
     pendingEquipment = new Set(savedEquipment);
+
     applyEquipment();
     renderEquipment();
 }
