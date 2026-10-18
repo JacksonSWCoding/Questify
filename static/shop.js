@@ -185,19 +185,24 @@ async function purchaseItem(itemId) {
 }
 
 
+
 function updateAvatarBackground() {
     const characterStage = document.querySelector(".character-stage");
     if (!characterStage) return;
 
-    const forestEquipped =
-        equippedCosmetics.backgrounds === "forest_background" ||
-        equippedCosmetics.backgrounds === 3;
+    const selectedBackground = equippedCosmetics.backgrounds;
 
     characterStage.classList.toggle(
         "forest-background",
-        forestEquipped
+        selectedBackground === "forest_background" || selectedBackground === 3
+    );
+
+    characterStage.classList.toggle(
+        "castle-background",
+        selectedBackground === "castle_background"
     );
 }
+
 
 function equipItem(itemId) {
     const item = shopItems.find(product => product.id === itemId);
