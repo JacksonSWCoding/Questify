@@ -15,8 +15,13 @@
         rel="stylesheet"
     >
 
+ backend
+    <link rel="stylesheet" href="/static/style.css?v=equipment1">
+    <link rel="stylesheet" href="/static/shop.css">
+
     <link rel="stylesheet" href="/static/style.css?v=5">
     <link rel="stylesheet" href="/static/shop.css?v=2">
+ main
     <script src="/static/shop.js" defer></script>
 </head>
 
@@ -55,6 +60,30 @@
 
             <div id="character-display">
                 <div class="character-stage" data-trait="general">
+ backend
+                    <div class="character-rig">
+                        <div
+                            id="base-avatar"
+                            class="lpc-sprite sprite-male"
+                        ></div>
+
+                        <div
+                            id="outfit-layer"
+                            class="lpc-sprite sprite-outfit-male"
+                        ></div>
+
+                        <div id="item-wizard_hat" class="gear-layer lpc-sprite"></div>
+                        <div id="item-black_shoes" class="gear-layer lpc-sprite"></div>
+                        <div id="item-headband" class="gear-layer lpc-sprite"></div>
+                        <div id="item-dagger" class="gear-layer lpc-sprite"></div>
+                        <div id="item-glasses" class="gear-layer lpc-sprite"></div>
+                        <div id="item-cape" class="gear-layer lpc-sprite"></div>
+                        <div id="item-wand" class="gear-layer lpc-sprite"></div>
+                        <div id="item-cap" class="gear-layer lpc-sprite"></div>
+                        <div id="item-bauldron" class="gear-layer lpc-sprite"></div>
+                        <div id="item-crystal" class="gear-layer lpc-sprite"></div>
+                    </div>
+
                   <div class="character-rig">
                     <!-- Base Character Body & Outfit Layers Stacked Directly Together -->
                     <div id="base-avatar" class="lpc-sprite sprite-male"></div>
@@ -72,6 +101,7 @@
                   </div>
                   <!-- Item held overhead during the unlock animation -->
                   <div id="item-get-icon" class="item-get-icon" aria-hidden="true"></div>
+ main
                 </div>
 
                 <p id="dominant-trait" class="dominant-trait">
@@ -87,9 +117,11 @@
                 <div class="xp-bars">
                     <div class="xp-row">
                         <span class="xp-label">📋 General</span>
+
                         <div class="xp-track">
                             <div id="general-xp-bar" class="xp-fill"></div>
                         </div>
+
                         <span id="general-xp-text" class="xp-text">
                             0 XP
                         </span>
@@ -97,9 +129,11 @@
 
                     <div class="xp-row">
                         <span class="xp-label">🏃 Fitness</span>
+
                         <div class="xp-track">
                             <div id="fitness-xp-bar" class="xp-fill"></div>
                         </div>
+
                         <span id="fitness-xp-text" class="xp-text">
                             0 / 10 XP
                         </span>
@@ -107,9 +141,11 @@
 
                     <div class="xp-row">
                         <span class="xp-label">💻 Coding</span>
+
                         <div class="xp-track">
                             <div id="coding-xp-bar" class="xp-fill"></div>
                         </div>
+
                         <span id="coding-xp-text" class="xp-text">
                             0 / 10 XP
                         </span>
@@ -117,9 +153,11 @@
 
                     <div class="xp-row">
                         <span class="xp-label">🎨 Creative</span>
+
                         <div class="xp-track">
                             <div id="creative-xp-bar" class="xp-fill"></div>
                         </div>
+
                         <span id="creative-xp-text" class="xp-text">
                             0 / 10 XP
                         </span>
@@ -129,7 +167,15 @@
                 <div id="unlocked-gear-list" class="unlocked-gear"></div>
             </div>
 
+ backend
+            <p class="wallet-line">
+                🪙 Your Coins:
+                <span id="wallet-balance">Loading…</span>
+            </p>
+
+
             <p class="wallet-line">🏦 Habit Vault: <span id="wallet-balance">Loading</span></p>
+      main
             <button
                 id="shop-button"
                 class="ui-button shop-corner-btn"
@@ -256,6 +302,23 @@
                 <h3>Available Items</h3>
                 <div id="shop-items" class="shop-items"></div>
             </div>
+ backend
+        </div>
+    </div>
+
+    <div id="customizer-modal" class="modal-overlay hidden">
+        <div class="modal-card wide-modal">
+            <h2>Character Customization &amp; Equipment</h2>
+
+            <p class="equipment-note">
+                Select unlocked gear, then Save Changes.
+                Cancel restores your saved selection.
+            </p>
+
+            <div id="equipment-inventory" class="inventory-col"></div>
+
+
+ main
             <div class="inventory-section">
                 <h3>🎒 Your Inventory</h3>
 
@@ -263,6 +326,62 @@
                     <p>No items purchased yet.</p>
                 </div>
             </div>
+ backend
+
+            <div class="custom-group">
+                <label>Base Model:</label>
+
+                <div class="gender-toggle">
+                    <button
+                        type="button"
+                        class="gender-btn active"
+                        data-gender="male"
+                    >
+                        Male
+                    </button>
+
+                    <button
+                        type="button"
+                        class="gender-btn"
+                        data-gender="female"
+                    >
+                        Female
+                    </button>
+                </div>
+            </div>
+
+            <hr style="border-color: #3b4252; margin: 20px 0;">
+
+            <div class="custom-group">
+                <label style="color: #bf616a;">Danger Zone:</label>
+
+                <button
+                    id="reset-progress-btn"
+                    class="danger-btn"
+                    type="button"
+                >
+                    Reset Hero Progress
+                </button>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button
+                    id="save-customization-btn"
+                    class="primary-btn"
+                    type="button"
+                >
+                    Save Changes
+                </button>
+
+                <button
+                    id="close-modal-btn"
+                    class="secondary-btn"
+                    type="button"
+                >
+                    Cancel
+                </button>
+            </div>
+ main
         </div>
     </div>
 
