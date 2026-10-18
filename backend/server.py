@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -15,8 +16,12 @@ try:
 except ImportError:
     pass
 
+# Use writable /tmp/instance on Vercel, or default local instance folder
+INSTANCE_DIR = "/tmp/instance" if os.environ.get("VERCEL") else str(PROJECT_ROOT / "instance")
+
 app = Flask(
     __name__,
+    instance_path=INSTANCE_DIR,
     instance_relative_config=True,
     static_folder=str(PROJECT_ROOT / "static"),
     static_url_path="/static"
