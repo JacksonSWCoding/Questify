@@ -174,6 +174,35 @@ class BackendTests(unittest.TestCase):
         hat = next(item for item in shop["items"] if item["id"] == "red_hat")
         self.assertTrue(hat["owned"])
 
+    def test_shop_equipment_persisted(self):
+        self.earn_coins(10)
+        self.assertEqual(
+            self.client.post("/api/shop/forest_background/purchase").status_code,
+            201
+        )
+
+        response = self.client.patch(
+            "/api/player/shop-equipment",
+            json={"backgrounds": "forest_background"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get_json()["backgrounds"],
+            "forest_background"
+        )
+
+        shop = self.get_shop()
+        self.assertEqual(
+            shop["equipped_cosmetics"]["backgrounds"],
+            "forest_background"
+        )
+
+        denied = self.client.patch(
+            "/api/player/shop-equipment",
+            json={"accessories": "red_hat"}
+        )
+        self.assertEqual(denied.status_code, 403)
+
     def test_insufficient_coins_preserves_balance_and_inventory(self):
         self.earn_coins(5)
 

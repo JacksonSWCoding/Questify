@@ -84,6 +84,33 @@ function showCoins(amount) {
     }
 }
 
+function applyEquippedCosmeticsFromServer(payload) {
+    if (!payload || typeof payload !== 'object') {
+        return;
+    }
+
+    equippedCosmetics = {
+        accessories: normalizeShopItemId(payload.accessories ?? null),
+        clothes: normalizeShopItemId(payload.clothes ?? null),
+        backgrounds: normalizeShopItemId(payload.backgrounds ?? null)
+    };
+    localStorage.setItem('questify_equipment', JSON.stringify(equippedCosmetics));
+    updateAvatarBackground();
+}
+
+async function persistEquippedCosmetics() {
+    try {
+        const result = await shopRequest('/api/player/shop-equipment', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(equippedCosmetics)
+        });
+        applyEquippedCosmeticsFromServer(result);
+    } catch (error) {
+        console.warn('Could not save shop equipment to server:', error);
+    }
+}
+
 async function shopRequest(url, options = {}) {
     const response = await fetch(url, options);
     const text = await response.text();
@@ -164,6 +191,9 @@ async function loadShop() {
             }));
         }
         showCoins(coins);
+        if (data.equipped_cosmetics) {
+            applyEquippedCosmeticsFromServer(data.equipped_cosmetics);
+        }
     } catch (error) {
         console.error('Could not load shop from /api/shop, using fallback items:', error);
     } finally {
@@ -270,7 +300,7 @@ function updateAvatarBackground() {
     applyShopWearables();
 }
 
-function equipItem(itemId) {
+async function equipItem(itemId) {
     const item = shopItems.find(product => product.id === itemId);
     if (!item || !item.owned) {
         return;
@@ -280,6 +310,7 @@ function equipItem(itemId) {
     localStorage.setItem('questify_equipment', JSON.stringify(equippedCosmetics));
     updateAvatarBackground();
     renderShopInventory();
+    await persistEquippedCosmetics();
 }
 
 function renderShopInventory() {
