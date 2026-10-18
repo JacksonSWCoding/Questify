@@ -27,12 +27,12 @@ Install dependencies:
 
 **Windows PowerShell**
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
 **macOS / Linux**
 ```bash
-./.venv/bin/python -m pip install -r backend/requirements.txt
+./.venv/bin/python -m pip install -r requirements.txt
 ```
 
 ### Start the app
