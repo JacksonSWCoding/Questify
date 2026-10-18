@@ -101,7 +101,6 @@
     cursor: default;
     opacity: 0.7;
     transform: none;
- backend
     filter: none;
 }
 
@@ -117,13 +116,10 @@
 .shop-category[aria-pressed="true"] {
     outline: 2px solid gold;
     outline-offset: 2px;
-
- main
 }
 
 .wallet-line {
     margin: 12px 0 8px;
- backend
     padding: 10px 14px;
     text-align: center;
     font-weight: 700;
@@ -145,39 +141,4 @@
     .shop-inventory {
         grid-template-columns: 1fr;
     }
-
-    font-weight: 700;
-}
-
-.shop-content h2,
-.shop-content h3 {
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: none;
-    text-align: left;
-    text-transform: none;
-    letter-spacing: 0;
-    text-shadow: none;
-    font-family: Inter, Arial, sans-serif;
-    color: white;
-}
-
-.shop-header,
-.shop-categories {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-
-.shop-category,
-.equip-button,
-#close-shop {
-    border: none;
-    border-radius: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
- main
 }

@@ -18,71 +18,12 @@ Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 DATABASE = Path(app.instance_path) / "tasks.db"
 
 SHOP_ITEMS = [
-  backend
-    {
-        "id": 1,
-        "name": "Wizard Hat",
-        "price": 50,
-        "category": "accessories",
-        "requires": None
-    },
-    {
-        "id": 2,
-        "name": "Knight Armor",
-        "price": 100,
-        "category": "clothes",
-        "requires": None
-    },
-    {
-        "id": 3,
-        "name": "Forest Background",
-        "price": 150,
-        "category": "backgrounds",
-        "requires": None
-    },
-    {
-        "id": 4,
-        "name": "Red Beret",
-        "price": 50,
-        "category": "accessories",
-        "requires": "beret"
-    },
-    {
-        "id": 5,
-        "name": "Purple Beret",
-        "price": 75,
-        "category": "accessories",
-        "requires": "beret"
-    },
-    {
-        "id": 6,
-        "name": "Blue Hoodie",
-        "price": 80,
-        "category": "clothes",
-        "requires": "hoodie"
-    },
-    {
-        "id": 7,
-        "name": "Black Hoodie",
-        "price": 100,
-        "category": "clothes",
-        "requires": "hoodie"
-    },
-    {
-        "id": 8,
-        "name": "Castle Background",
-        "price": 150,
-        "category": "backgrounds",
-        "requires": None
-    }
-
     {"id": "red_beret", "name": "Red Beret", "price": 50, "category": "accessories", "requires": "beret"},
     {"id": "purple_beret", "name": "Purple Beret", "price": 75, "category": "accessories", "requires": "beret"},
     {"id": "blue_hoodie", "name": "Blue Hoodie", "price": 80, "category": "clothes", "requires": "hoodie"},
     {"id": "black_hoodie", "name": "Black Hoodie", "price": 100, "category": "clothes", "requires": "hoodie"},
     {"id": "forest_background", "name": "Forest Background", "price": 100, "category": "backgrounds", "requires": None},
     {"id": "castle_background", "name": "Castle Background", "price": 150, "category": "backgrounds", "requires": None},
- main
 ]
 
 GEAR_REQUIREMENTS = {
