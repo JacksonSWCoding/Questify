@@ -322,7 +322,6 @@ button:focus-visible {
     text-transform: uppercase;
 }
 
- backend
 .badge-general {
     background: #cbd5e1;
     color: #334155;
@@ -335,31 +334,6 @@ button:focus-visible {
     border-color: #4ade80;
 }
 
-
-/* Compact "Delete" button on each quest */
-#task-list li .delete-btn {
-    padding: 4px 10px;
-    border: 1px solid #b45309;
-    border-radius: 6px;
-    background: transparent;
-    color: #7c2d12;
-    font-size: 0.7rem;
-    box-shadow: none;
-}
-
-#task-list li .delete-btn:hover:not(:disabled) {
-    background: #b45309;
-    color: #fff;
-}
-
-#task-list li .delete-btn:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-.badge-general  { background: #cbd5e1; color: #334155; border-color: #94a3b8; }
-.badge-fitness  { background: #bbf7d0; color: #166534; border-color: #4ade80; }
- main
 .badge-coding,
 .badge-tech {
     background: #bfdbfe;
@@ -458,7 +432,6 @@ button:focus-visible {
     font-variant-numeric: tabular-nums;
 }
 
- backend
 .unlocked-gear {
     display: flex;
     flex-wrap: wrap;
@@ -469,11 +442,6 @@ button:focus-visible {
 .unlocked-gear .badge {
     margin-left: 0;
 }
-
-/* =========================================================
-   Character Stage & Clean LPC Sprite Framing
-   ========================================================= */
- main
 
 .character-stage {
     position: relative;
@@ -623,12 +591,8 @@ button:focus-visible {
     animation: heroItemGet 2.6s ease-in-out both;
 }
 
-/* Arms-up pose: LPC spellcast row, facing down (row 2 = -128px).
-   Frames step 0 -> 3 (-0, -64, -128, -192px), hold on frame 3, then return to idle.
-   If the arms look wrong, change the x values below (each frame is 64px wide). */
 .character-rig.item-get .lpc-sprite {
     animation: heroArmsUp 2.6s steps(1, end) both;
- backend
 }
 
 @keyframes heroArmsUp {
@@ -651,21 +615,9 @@ button:focus-visible {
     100% {
         background-position: 0 -640px;
     }
-
- main
 }
 
-@keyframes heroArmsUp {
-    0%       { background-position: 0px    -128px; }
-    10%      { background-position: -64px  -128px; }
-    20%      { background-position: -128px -128px; }
-    30%, 85% { background-position: -192px -128px; }
-    100%     { background-position: 0px    -640px; }
-}
-
-/* Gentle lift instead of a jump */
 @keyframes heroItemGet {
- backend
     0%, 100% {
         transform: scale(3.5) translateY(0);
     }
@@ -720,46 +672,6 @@ button:focus-visible {
     }
 }
 
-
-    0%   { transform: scale(3.5, 3.5) translateY(0); }
-    30%  { transform: scale(3.5, 3.5) translateY(-2px); }
-    85%  { transform: scale(3.5, 3.5) translateY(-2px); }
-    100% { transform: scale(3.5, 3.5) translateY(0); }
-}
-
-/* Item held up above the hero's head */
-.item-get-icon {
-    position: absolute;
-    top: 4%;
-    left: 50%;
-    transform: translateX(-50%) scale(0);
-    font-size: 3.4rem;
-    line-height: 1;
-    opacity: 0;
-    pointer-events: none;
-    z-index: 5;
-    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.95));
-}
-
-.item-get-icon svg {
-    display: block;
-    width: 1em;
-    height: 1em;
-}
-
-.item-get-icon.show {
-    animation: itemGetPop 2.6s ease-out both;
-}
-
-@keyframes itemGetPop {
-    0%, 20% { opacity: 0; transform: translateX(-50%) translateY(18px) scale(0.3); }
-    32%     { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.3); }
-    42%, 85% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-    100%    { opacity: 0; transform: translateX(-50%) translateY(0) scale(1); }
-}
-
-/* Bottom Corner Buttons */
- main
 .shop-corner-btn {
     position: absolute;
     bottom: 20px;
@@ -812,7 +724,6 @@ button:focus-visible {
 
 .modal-card.wide-modal {
     width: 680px;
- backend
 }
 
 #customizer-modal .modal-card {
@@ -867,22 +778,6 @@ button:focus-visible {
 .equipment-note {
     color: var(--muted);
     font-size: 0.85rem;
-
-    max-width: 95vw;
-}
-
-.modal-grid {
-    display: grid;
-    grid-template-columns: 1fr 1.3fr;
-    gap: 20px;
-    align-items: start;
-}
-
-@media (max-width: 650px) {
-    .modal-grid {
-        grid-template-columns: 1fr;
-    }
-main
 }
 
 .inventory-col {
@@ -913,7 +808,6 @@ main
     min-height: 24px;
 }
 
- backend
 .gear-badge {
     margin-left: 0;
     cursor: pointer;
@@ -939,8 +833,6 @@ main
     color: var(--text);
 }
 
-
- main
 .custom-group {
     margin-bottom: 15px;
 }
@@ -1002,7 +894,6 @@ main
     background: #d08770;
 }
 
- backend
 @media (max-width: 800px) {
     .app-container {
         grid-template-columns: minmax(0, 1fr);
@@ -1058,165 +949,3 @@ main
 #customizer-modal .shop-inventory {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
-
-/* Forces ALL inner layers and dynamic shop/gear elements to overlap perfectly at 0,0 */
-.character-rig > div {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 64px !important;
-    height: 64px !important;
-}
-
-/* =========================================================
-   Gear Layers & Inventory Styling
-   ========================================================= */
-
-.gear-layer {
-    display: none;
-    background-size: auto;
-    background-repeat: no-repeat;
-    background-position: 0px -640px;
-}
-
-.gear-layer.equipped {
-    display: block !important;
-}
-
-/* Item Spritesheet Mappings */
-#item-black_shoes    { background-image: url('/static/images/black_shoes.png'); }
-#item-headband       { background-image: url('/static/images/headband.png'); }
-#item-dagger         { background-image: url('/static/images/dagger.png'); }
-#item-glasses        { background-image: url('/static/images/glasses.png'); }
-#item-cape           { background-image: url('/static/images/cape.png'); }
-/* Standard LPC staff sheet mapping */
-#item-wand           { 
-    background-image: url('/static/images/staff.png'), url('/static/images/wand.png');
-    background-position: 0px -640px;
-    background-size: auto;
-}
-#item-cap            { background-image: url('/static/images/cap.png'); }
-#item-bauldron       { background-image: url('/static/images/bauldron.png'); }
-#item-crystal        { background-image: url('/static/images/crystal.png'); }
-
-/* Layer order, bottom -> top. The cape sits BEHIND the body; everything else is drawn over it.
-   The bauldron is always above the cape, and handheld items (dagger, wand, crystal) are on top.
-   To move something, just change its number. */
-#item-cape         { z-index: 1; }
-#base-avatar       { z-index: 2; }
-#outfit-layer      { z-index: 3; }
-#item-black_shoes  { z-index: 4; }
-#item-bauldron     { z-index: 5; }
-#item-headband     { z-index: 6; }
-#item-glasses      { z-index: 7; }
-#item-cap          { z-index: 8; }
-#item-dagger       { z-index: 9; }
-#item-wand         { z-index: 10; }
-#item-crystal      { z-index: 11; }
-
-.gear-badge {
-    cursor: pointer;
-    background: #1e293b;
-    color: var(--muted);
-    border: 1px solid var(--input-border);
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    transition: all 0.2s ease;
-}
-
-.gear-badge.equipped {
-    background: #15803d;
-    color: #fff;
-    border-color: #22c55e;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
-}
-
-.gear-badge:hover {
-    border-color: var(--gold);
-    color: var(--text);
-}
-/* FOREST BACKGROUND — ROUND TREES WITH LONGER TRUNKS */
-
-.character-stage.forest-background {
-    background: linear-gradient(
-        to bottom,
-        #a7d7f9 0%,
-        #8fcf98 35%,
-        #3b8052 70%,
-        #183d2b 100%
-    );
-}
-
-/* Round tree canopies and longer trunks */
-.character-stage.forest-background::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-
-    background:
-        /* Round tree canopies */
-        radial-gradient(circle at 10% 48%, #163523 0 7%, transparent 7.5%),
-        radial-gradient(circle at 18% 44%, #1d402b 0 9%, transparent 9.5%),
-        radial-gradient(circle at 27% 50%, #173725 0 8%, transparent 8.5%),
-        radial-gradient(circle at 38% 42%, #224a31 0 10%, transparent 10.5%),
-        radial-gradient(circle at 50% 49%, #183a27 0 8%, transparent 8.5%),
-        radial-gradient(circle at 61% 43%, #214632 0 10%, transparent 10.5%),
-        radial-gradient(circle at 72% 50%, #163523 0 8%, transparent 8.5%),
-        radial-gradient(circle at 82% 45%, #1f432f 0 9%, transparent 9.5%),
-        radial-gradient(circle at 92% 49%, #173725 0 7%, transparent 7.5%),
-
-        /* Longer brown tree trunks */
-        linear-gradient(#4b2f1d, #4b2f1d) 10% 68% / 2.5% 42% no-repeat,
-        linear-gradient(#4b2f1d, #4b2f1d) 18% 66% / 2.5% 44% no-repeat,
-        linear-gradient(#4b2f1d, #4b2f1d) 27% 69% / 2.5% 40% no-repeat,
-        linear-gradient(#4b2f1d, #4b2f1d) 38% 65% / 2.5% 45% no-repeat,
-        linear-gradient(#4b2f1d, #4b2f1d) 50% 68% / 2.5% 42% no-repeat,
-        linear-gradient(#4b2f1d, #4b2f1d) 61% 66% / 2.5% 44% no-repeat,
-        linear-gradient(#4b2f1d, #4b2f1d) 72% 69% / 2.5% 40% no-repeat,
-        linear-gradient(#4b2f1d, #4b2f1d) 82% 67% / 2.5% 43% no-repeat,
-        linear-gradient(#4b2f1d, #4b2f1d) 92% 68% / 2.5% 42% no-repeat;
-}
-
-.character-stage.forest-background::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    background:
-        /* left tree trunk */
-        linear-gradient(#6b4423, #6b4423) 18% 63% / 10px 70px no-repeat,
-
-        /* right tree trunk */
-        linear-gradient(#6b4423, #6b4423) 80% 60% / 12px 78px no-repeat,
-
-        /* shrubs left */
-        radial-gradient(circle at 16% 84%, #3f7f4d 0 5%, transparent 5.5%),
-        radial-gradient(circle at 22% 87%, #4b9159 0 4.5%, transparent 5%),
-        radial-gradient(circle at 28% 84%, #356f43 0 5%, transparent 5.5%),
-
-        /* shrubs right */
-        radial-gradient(circle at 70% 86%, #3f7f4d 0 5%, transparent 5.5%),
-        radial-gradient(circle at 76% 83%, #4b9159 0 4.5%, transparent 5%),
-        radial-gradient(circle at 82% 87%, #356f43 0 5%, transparent 5.5%),
-
-        /* tiny bunny silhouette */
-        radial-gradient(ellipse at 86% 84%, #4a3526 0 3.5%, transparent 3.7%),
-        radial-gradient(circle at 90% 82%, #4a3526 0 2.2%, transparent 2.4%),
-        radial-gradient(ellipse at 91% 78%, #4a3526 0 0.9%, transparent 1.1%),
-        radial-gradient(ellipse at 89.5% 78.5%, #4a3526 0 0.9%, transparent 1.1%),
-
-        /* grass strip */
-        linear-gradient(to top, #4b8a52 0%, #6aa56d 18%, transparent 30%) bottom / 100% 24% no-repeat;
-}
-
-/* Keep the avatar in front of the forest */
-.character-stage.forest-background .character-rig {
-    position: relative;
-    z-index: 2;
-}
- main
