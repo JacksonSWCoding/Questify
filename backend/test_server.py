@@ -8,7 +8,7 @@ import server
 
 class BackendTests(unittest.TestCase):
     def setUp(self):
-        self.temp_directory = tempfile.TemporaryDirectory()
+        self.temp_directory = tempfile.TemporaryDirectory(dir=Path(__file__).parent)
         self.original_database = server.DATABASE
         self.original_testing = server.app.config["TESTING"]
 
@@ -53,6 +53,72 @@ class BackendTests(unittest.TestCase):
         response = self.client.get("/api/shop")
         self.assertEqual(response.status_code, 200)
         return response.get_json()
+
+    def test_equipment_saved_and_removed_without_spending_coins(self):
+        task = self.create_task(category="fitness")
+        self.client.post(f"/api/tasks/{task}/complete")
+        before = self.get_player()
+        response = self.client.patch("/api/player/customization", json={
+            "character_model": "female", "equipped_items": ["black_shoes"]
+        })
+        self.assertEqual(response.status_code, 200)
+        server.init_db()
+        player = self.get_player()
+        self.assertEqual(player["equipped_items"], ["black_shoes"])
+        self.assertEqual(player["character_model"], "female")
+        self.assertEqual(player["coins"], before["coins"])
+        self.assertEqual(player["xp"], before["xp"])
+        response = self.client.patch("/api/player/customization", json={
+            "character_model": "female", "equipped_items": []
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.get_player()["equipped_items"], [])
+
+    def test_invalid_equipment_does_not_partially_save_model(self):
+        for gear in (["wand"], ["unknown"], [None], None, "glasses"):
+            response = self.client.patch("/api/player/customization", json={
+                "character_model": "female", "equipped_items": gear
+            })
+            self.assertIn(response.status_code, (400, 403))
+            self.assertEqual(self.get_player()["character_model"], "male")
+            self.assertEqual(self.get_player()["equipped_items"], [])
+
+    def test_reset_clears_equipment_but_preserves_purchase(self):
+        self.earn_coins(5)
+        self.assertEqual(self.client.post("/api/shop/1/purchase").status_code, 201)
+        task = self.create_task(category="coding")
+        self.client.post(f"/api/tasks/{task}/complete")
+        self.client.patch("/api/player/customization", json={
+            "character_model": "female", "equipped_items": ["glasses"]
+        })
+        self.client.post("/api/reset-state", json={"mode": "reset"})
+        self.assertEqual(self.get_player()["equipped_items"], [])
+        self.assertEqual(self.get_player()["coins"], 10)
+        self.assertTrue(self.get_shop()["items"][0]["owned"])
+
+    def test_shop_requirement_checked_on_server(self):
+        self.earn_coins(10)
+        before = self.get_player()["coins"]
+        self.assertEqual(self.client.post("/api/shop/4/purchase").status_code, 403)
+        self.assertEqual(self.get_player()["coins"], before)
+        task = self.create_task(category="creative")
+        self.client.post(f"/api/tasks/{task}/complete")
+        self.assertEqual(self.client.post("/api/shop/4/purchase").status_code, 201)
+        self.assertEqual(self.client.post("/api/shop/4/purchase").status_code, 409)
+        self.assertEqual(self.get_player()["coins"], before + 10 - 50)
+
+    def test_edit_task_survives_integration(self):
+        task = self.create_task()
+        response = self.client.patch(f"/api/tasks/{task}", json={
+            "title": "Updated", "category": "coding"
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["title"], "Updated")
+        self.client.post(f"/api/tasks/{task}/complete")
+        response = self.client.patch(f"/api/tasks/{task}", json={
+            "title": "Too late", "category": "general"
+        })
+        self.assertEqual(response.status_code, 409)
 
     def test_completion_awards_rewards_only_once(self):
         task_id = self.create_task(category="fitness")

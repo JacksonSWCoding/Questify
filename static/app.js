@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentGender = 'male';
     let pendingGender = currentGender;
+    let tasks = [];
+    let addingTask = false;
+    let resetting = false;
+
+    const pendingTasks = new Set();
 
     function updateAvatarSprite(gender) {
         if (baseAvatar) {
@@ -21,16 +26,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 'sprite-outfit-male',
                 'sprite-outfit-female'
             );
+
             outfitLayer.classList.add(`sprite-outfit-${gender}`);
         }
     }
 
     updateAvatarSprite(currentGender);
-
-    let tasks = [];
-    let addingTask = false;
-    let resetting = false;
-    const pendingTasks = new Set();
 
     const rig = document.querySelector('.character-rig');
     const stage = document.querySelector('.character-stage');
@@ -77,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearTimeout(cheerTimer);
                     clearTimeout(gearResetTimer);
 
-                    // Hold the new item up overhead
                     const itemIcon = document.getElementById('item-get-icon');
                     if (itemIcon) {
                         const itemId = newlyUnlockedItem.id.replace('item-', '');
@@ -117,9 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Read as text first: if the server sends an HTML error page (missing route,
-        // crash, old server still running) we can explain it instead of showing
-        // "Unexpected token '<'".
         const text = await response.text();
         let data = {};
 
@@ -190,8 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function completeTask(id, event) {
         if (pendingTasks.has(id) || resetting) return;
 
-        const checkbox = event.target;
-        const rect = checkbox.getBoundingClientRect();
+        const rect = event.target.getBoundingClientRect();
+
         const origin = {
             x: (rect.left + rect.width / 2) / window.innerWidth,
             y: (rect.top + rect.height / 2) / window.innerHeight
@@ -217,14 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
 
         try {
-            // The complete endpoint returns the updated hero state, including
-            // "newly_unlocked". Use it directly so the unlock animation plays; a plain
-            // GET /api/character-state would report newly_unlocked as empty.
-            if (result && result.xp) {
-                updateCharacterVisuals(result);
-            } else {
-                await loadCharacterState();
-            }
+            await loadCharacterState();
         } finally {
             pendingTasks.delete(id);
         }
@@ -237,6 +227,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 scalar: 0.8,
                 disableForReducedMotion: true
             });
+        }
+    }
+
+    async function editTask(id) {
+        if (resetting || pendingTasks.has(id)) return;
+
+        const task = tasks.find(task => task.id === id);
+        if (!task) return;
+
+        const enteredTitle = prompt('Edit task title:', task.title);
+        if (enteredTitle === null) return;
+
+        const title = enteredTitle.trim();
+
+        if (!title) {
+            alert('Task title is required.');
+            return;
+        }
+
+        const enteredCategory = prompt(
+            'Category: general, fitness, coding, or creative',
+            task.category
+        );
+
+        if (enteredCategory === null) return;
+
+        const category = enteredCategory.trim().toLowerCase();
+
+        if (!['general', 'fitness', 'coding', 'creative'].includes(category)) {
+            alert('Choose general, fitness, coding, or creative.');
+            return;
+        }
+
+        pendingTasks.add(id);
+        renderTasks();
+
+        try {
+            const updatedTask = await apiRequest(`/api/tasks/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ title, category })
+            });
+
+            tasks = tasks.map(task => {
+                return task.id === id ? updatedTask : task;
+            });
+        } catch (error) {
+            alert(`Could not edit task: ${error.message}`);
+        } finally {
+            pendingTasks.delete(id);
+            renderTasks();
         }
     }
 
@@ -263,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function resetProgress() {
-        if (resetting) return;
+        if (resetting || loadingCustomization || savingCustomization) return;
 
         if (pendingTasks.size > 0 || addingTask) {
             alert('Wait for the current task update to finish.');
@@ -279,8 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!confirmed) return;
 
         resetting = true;
-        resetBtn.disabled = true;
         addBtn.disabled = true;
+        updateCustomizationControls();
         renderTasks();
 
         try {
@@ -294,8 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`Could not reset progress: ${error.message}`);
         } finally {
             resetting = false;
-            resetBtn.disabled = false;
             addBtn.disabled = false;
+            updateCustomizationControls();
             renderTasks();
         }
     }
@@ -314,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
             checkbox.type = 'checkbox';
             checkbox.disabled = resetting || pendingTasks.has(task.id);
             checkbox.setAttribute('aria-label', `Complete ${task.title}`);
+
             checkbox.addEventListener('change', event => {
                 completeTask(task.id, event);
             });
@@ -325,18 +366,21 @@ document.addEventListener('DOMContentLoaded', () => {
             tag.className = `badge badge-${task.category}`;
             tag.textContent = formatCategory(task.category);
 
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.textContent = 'Edit';
+            editBtn.setAttribute('aria-label', `Edit ${task.title}`);
+            editBtn.disabled = resetting || pendingTasks.has(task.id);
+            editBtn.addEventListener('click', () => editTask(task.id));
+
             const deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
-            deleteBtn.className = 'delete-btn';
             deleteBtn.textContent = 'Delete';
             deleteBtn.setAttribute('aria-label', `Delete ${task.title}`);
             deleteBtn.disabled = resetting || pendingTasks.has(task.id);
             deleteBtn.addEventListener('click', () => deleteTask(task.id));
 
-            li.appendChild(checkbox);
-            li.appendChild(textSpan);
-            li.appendChild(tag);
-            li.appendChild(deleteBtn);
+            li.append(checkbox, textSpan, tag, editBtn, deleteBtn);
             taskList.appendChild(li);
         });
     }
@@ -350,9 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    if (resetBtn) {
-        resetBtn.addEventListener('click', resetProgress);
-    }
+    resetBtn?.addEventListener('click', resetProgress);
 
     const customizeBtn = document.getElementById('customize-btn');
     const customizerModal = document.getElementById('customizer-modal');
@@ -366,20 +408,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let savingCustomization = false;
     let customizationLoaded = false;
 
-    let modalSnapshot = null;
-
     function updateCustomizationControls() {
-        const busy = loadingCustomization || savingCustomization;
+        const busy =
+            loadingCustomization ||
+            savingCustomization ||
+            resetting;
 
+        setEquipmentBusy(busy);
+
+        if (resetBtn) resetBtn.disabled = busy;
         if (customizeBtn) customizeBtn.disabled = busy;
         if (closeModalBtn) closeModalBtn.disabled = busy;
 
         if (saveCustomizationBtn) {
-            saveCustomizationBtn.disabled = busy;
+            saveCustomizationBtn.disabled = busy || !customizationLoaded;
         }
 
         genderBtns.forEach(btn => {
             btn.disabled = busy || !customizationLoaded;
+
             btn.classList.toggle(
                 'active',
                 btn.dataset.gender === pendingGender
@@ -387,14 +434,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function syncGenderButtons() {
-        genderBtns.forEach((btn) => {
-            btn.classList.toggle('active', btn.dataset.gender === currentGender);
-        });
-    }
-
     async function loadCustomization() {
-        if (loadingCustomization || savingCustomization) return false;
+        if (loadingCustomization || savingCustomization || resetting) {
+            return false;
+        }
 
         loadingCustomization = true;
         customizationLoaded = false;
@@ -409,8 +452,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
             }
 
+            const equipmentState = await apiRequest('/api/character-state');
+
+            updateCharacterVisuals(equipmentState);
+
             currentGender = player.character_model;
             pendingGender = currentGender;
+
             updateAvatarSprite(currentGender);
             customizationLoaded = true;
 
@@ -425,26 +473,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     customizeBtn?.addEventListener('click', async () => {
-        modalSnapshot = {
-            gender: currentGender,
-            equipped: snapshotEquipped(),
-        };
-        customizerModal?.classList.remove('hidden');
-        await loadCustomization();
+        const loaded = await loadCustomization();
+
+        if (loaded) {
+            beginEquipmentEdit();
+            customizerModal?.classList.remove('hidden');
+        }
     });
 
     closeModalBtn?.addEventListener('click', () => {
-        if (loadingCustomization || savingCustomization) return;
+        if (loadingCustomization || savingCustomization || resetting) return;
 
-        if (modalSnapshot) {
-            currentGender = modalSnapshot.gender;
-            pendingGender = currentGender;
-            syncGenderButtons();
-            restoreEquipped(modalSnapshot.equipped);
-            saveEquipped(); // keep the stored gear in sync with what Cancel restored
-            updateAvatarSprite(currentGender);
-            modalSnapshot = null;
-        }
+        pendingGender = currentGender;
+        updateAvatarSprite(currentGender);
+        cancelEquipmentEdit();
+        updateCustomizationControls();
 
         customizerModal?.classList.add('hidden');
     });
@@ -454,40 +497,42 @@ document.addEventListener('DOMContentLoaded', () => {
             if (
                 loadingCustomization ||
                 savingCustomization ||
+                resetting ||
                 !customizationLoaded
             ) return;
 
             pendingGender = btn.dataset.gender;
+            updateAvatarSprite(pendingGender);
             updateCustomizationControls();
         });
     });
 
     saveCustomizationBtn?.addEventListener('click', async () => {
-        if (loadingCustomization || savingCustomization) return;
+        if (
+            loadingCustomization ||
+            savingCustomization ||
+            resetting ||
+            !customizationLoaded
+        ) return;
 
         savingCustomization = true;
         updateCustomizationControls();
 
         try {
-            // Gear choices are stored in the browser, so they are always saved, even
-            // if the character-choice request below fails.
-            saveEquipped();
+            const result = await apiRequest('/api/player/customization', {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    character_model: pendingGender,
+                    equipped_items: selectedEquipment()
+                })
+            });
 
-            // Only talk to the server when the body type actually changed.
-            if (customizationLoaded && pendingGender !== currentGender) {
-                const result = await apiRequest('/api/player/customization', {
-                    method: 'PATCH',
-                    body: JSON.stringify({
-                        character_model: pendingGender
-                    })
-                });
+            acceptEquipment(result.equipped_items);
 
-                currentGender = result.character_model;
-                pendingGender = currentGender;
-                updateAvatarSprite(currentGender);
-            }
+            currentGender = result.character_model;
+            pendingGender = currentGender;
 
-            modalSnapshot = null;
+            updateAvatarSprite(currentGender);
             customizerModal?.classList.add('hidden');
         } catch (error) {
             alert(`Could not save character choice: ${error.message}`);
@@ -496,6 +541,57 @@ document.addEventListener('DOMContentLoaded', () => {
             updateCustomizationControls();
         }
     });
+
+    const card = customizerModal?.querySelector('.modal-card');
+
+    if (customizerModal && card && stage) {
+        const originalPosition = document.createComment('hero-position');
+        stage.before(originalPosition);
+
+        const layout = document.createElement('div');
+        layout.className = 'customizer-layout';
+
+        const preview = document.createElement('div');
+        preview.className = 'customizer-preview';
+
+        const heading = document.createElement('h3');
+        heading.textContent = 'Your Hero';
+
+        const hint = document.createElement('p');
+        hint.textContent = 'Select equipment to preview it here.';
+
+        preview.append(heading, hint);
+
+        const controls = document.createElement('div');
+        controls.className = 'customizer-controls';
+
+        while (card.firstChild) {
+            controls.appendChild(card.firstChild);
+        }
+
+        layout.append(preview, controls);
+        card.appendChild(layout);
+
+        function updatePreviewLocation() {
+            const isOpen = !customizerModal.classList.contains('hidden');
+
+            if (isOpen) {
+                preview.insertBefore(stage, hint);
+            } else {
+                originalPosition.after(stage);
+            }
+        }
+
+        new MutationObserver(updatePreviewLocation).observe(
+            customizerModal,
+            {
+                attributes: true,
+                attributeFilter: ['class']
+            }
+        );
+
+        updatePreviewLocation();
+    }
 
     loadTasks();
     loadCustomization();
