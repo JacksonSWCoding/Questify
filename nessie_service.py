@@ -20,10 +20,10 @@ BASE_URL = "https://api.nessieisreal.com"
 TASK_REWARD = 10
 
 SHOP_ITEMS = {
-    "red_beret": {"name": "Red Beret", "price": 50, "requires": "beret"},
-    "purple_beret": {"name": "Purple Beret", "price": 75, "requires": "beret"},
-    "blue_hoodie": {"name": "Blue Hoodie", "price": 80, "requires": "hoodie"},
-    "black_hoodie": {"name": "Black Hoodie", "price": 100, "requires": "hoodie"},
+    "red_hat": {"name": "Red Hat", "price": 50, "requires": "cap"},
+    "blue_hat": {"name": "Blue Hat", "price": 75, "requires": "cap"},
+    "blue_hoodie": {"name": "Blue Hoodie", "price": 80, "requires": "cape"},
+    "black_hoodie": {"name": "Black Hoodie", "price": 100, "requires": "cape"},
     "forest_background": {"name": "Forest Background", "price": 100, "requires": None},
     "castle_background": {"name": "Castle Background", "price": 150, "requires": None},
 }

@@ -18,18 +18,29 @@ Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 DATABASE = Path(app.instance_path) / "tasks.db"
 
 SHOP_ITEMS = [
-    {"id": "red_beret", "name": "Red Beret", "price": 50, "category": "accessories", "requires": "beret"},
-    {"id": "purple_beret", "name": "Purple Beret", "price": 75, "category": "accessories", "requires": "beret"},
-    {"id": "blue_hoodie", "name": "Blue Hoodie", "price": 80, "category": "clothes", "requires": "hoodie"},
-    {"id": "black_hoodie", "name": "Black Hoodie", "price": 100, "category": "clothes", "requires": "hoodie"},
+    {"id": "red_hat", "name": "Red Hat", "price": 50, "category": "accessories", "requires": "cap"},
+    {"id": "blue_hat", "name": "Blue Hat", "price": 75, "category": "accessories", "requires": "cap"},
+    {"id": "blue_hoodie", "name": "Blue Hoodie", "price": 80, "category": "clothes", "requires": "cape"},
+    {"id": "black_hoodie", "name": "Black Hoodie", "price": 100, "category": "clothes", "requires": "cape"},
     {"id": "forest_background", "name": "Forest Background", "price": 100, "category": "backgrounds", "requires": None},
     {"id": "castle_background", "name": "Castle Background", "price": 150, "category": "backgrounds", "requires": None},
 ]
 
-GEAR_REQUIREMENTS = {
-    "beret": ("creative", 10),
-    "hoodie": ("coding", 30)
+SHOP_ITEM_ALIASES = {
+    "red_beret": "red_hat",
+    "purple_beret": "blue_hat",
 }
+
+GEAR_REQUIREMENTS = {
+    "cap": ("creative", 10),
+    "cape": ("coding", 30),
+    "beret": ("creative", 10),
+    "hoodie": ("coding", 30),
+}
+
+
+def normalize_shop_item_id(item_id):
+    return SHOP_ITEM_ALIASES.get(item_id, item_id)
 
 EQUIPMENT_REWARDS = {
     "wizard_hat": ("general", 30),
@@ -510,30 +521,7 @@ def character_state():
             "SELECT coins FROM player WHERE id = 1"
         ).fetchone()[0]
 
-    rewards = {
-        "fitness": [
-            (10, "headband"),
-            (30, "dumbbells"),
-            (60, "muscle_upgrade")
-        ],
-        "coding": [
-            (10, "glasses"),
-            (30, "hoodie"),
-            (60, "computer_desk")
-        ],
-        "creative": [
-            (10, "beret"),
-            (30, "paintbrush"),
-            (60, "easel")
-        ]
-    }
-
-    unlocked_items = [
-        item
-        for category, tiers in rewards.items()
-        for threshold, item in tiers
-        if xp.get(category, 0) >= threshold
-    ]
+    unlocked_items = available_equipment(xp)
 
     dominant_trait = "general"
     highest_xp = 0
@@ -588,7 +576,7 @@ def get_shop():
         ).fetchone()[0]
 
         owned_ids = {
-            row[0]
+            normalize_shop_item_id(row[0])
             for row in connection.execute(
                 "SELECT item_id FROM inventory"
             ).fetchall()
@@ -611,6 +599,7 @@ def get_shop():
 
 @app.post("/api/shop/<item_id>/purchase")
 def purchase_item(item_id):
+    item_id = normalize_shop_item_id(item_id)
     item = next(
         (item for item in SHOP_ITEMS if item["id"] == item_id),
         None

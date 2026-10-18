@@ -478,6 +478,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (loaded) {
             beginEquipmentEdit();
             customizerModal?.classList.remove('hidden');
+
+            if (typeof window.refreshCustomizerInventory === 'function') {
+                window.refreshCustomizerInventory();
+            }
         }
     });
 

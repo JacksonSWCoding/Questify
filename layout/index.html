@@ -12,9 +12,8 @@
         rel="stylesheet"
     >
 
-    <link rel="stylesheet" href="/static/style.css?v=equipment1">
-    <link rel="stylesheet" href="/static/shop.css">
-    <script src="/static/shop.js" defer></script>
+    <link rel="stylesheet" href="/static/style.css?v=forest1">
+    <link rel="stylesheet" href="/static/shop.css?v=3">
 </head>
 
 <body>
@@ -73,6 +72,10 @@
                         <div id="item-cap" class="gear-layer lpc-sprite"></div>
                         <div id="item-bauldron" class="gear-layer lpc-sprite"></div>
                         <div id="item-crystal" class="gear-layer lpc-sprite"></div>
+                        <div id="item-red_hat" class="gear-layer lpc-sprite shop-gear-layer"></div>
+                        <div id="item-blue_hat" class="gear-layer lpc-sprite shop-gear-layer"></div>
+                        <div id="item-blue_hoodie" class="gear-layer lpc-sprite shop-gear-layer"></div>
+                        <div id="item-black_hoodie" class="gear-layer lpc-sprite shop-gear-layer"></div>
                     </div>
                     <div id="item-get-icon" class="item-get-icon" aria-hidden="true"></div>
                 </div>
@@ -216,13 +219,6 @@
                 <h3>Available Items</h3>
                 <div id="shop-items" class="shop-items"></div>
             </div>
-
-            <div class="shop-section">
-                <h3>🎒 Your Inventory</h3>
-                <div id="shop-inventory" class="shop-inventory">
-                    <p>No items purchased yet.</p>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -236,6 +232,14 @@
             </p>
 
             <div id="equipment-inventory" class="inventory-col"></div>
+
+            <div class="inventory-section customizer-purchased-section">
+                <h3>🎒 Purchased cosmetics</h3>
+                <p class="equipment-note shop-inventory-hint">
+                    Items you bought in the shop. Equip them here; they save automatically.
+                </p>
+                <div id="shop-inventory" class="shop-inventory"></div>
+            </div>
 
             <div class="custom-group">
                 <label>Base Model:</label>
@@ -296,5 +300,6 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <script src="/static/evolution.js"></script>
     <script src="/static/app.js"></script>
+    <script src="/static/shop.js?v=8"></script>
 </body>
 </html>
