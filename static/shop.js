@@ -38,11 +38,17 @@ const ITEM_REQUIREMENTS = {
 let shopItems = [...DEFAULT_SHOP_ITEMS];
 let unlockedGear = [];
 let ownedCosmeticIds = new Set();
+
+const savedEquipment = JSON.parse(
+    localStorage.getItem("questify_equipment") || "{}"
+);
+
 let equippedCosmetics = {
-    accessories: null,
-    clothes: null,
-    backgrounds: null
+    accessories: savedEquipment.accessories ?? null,
+    clothes: savedEquipment.clothes ?? null,
+    backgrounds: savedEquipment.backgrounds ?? null
 };
+
 let coins = 0;
 let selectedCategory = 'all';
 let loading = false;
@@ -178,13 +184,39 @@ async function purchaseItem(itemId) {
     await loadShop();
 }
 
+
+function updateAvatarBackground() {
+    const characterStage = document.querySelector(".character-stage");
+    if (!characterStage) return;
+
+    const forestEquipped =
+        equippedCosmetics.backgrounds === "forest_background" ||
+        equippedCosmetics.backgrounds === 3;
+
+    characterStage.classList.toggle(
+        "forest-background",
+        forestEquipped
+    );
+}
+
 function equipItem(itemId) {
     const item = shopItems.find(product => product.id === itemId);
     if (!item || !item.owned) return;
 
     equippedCosmetics[item.category] = item.id;
+
+    // Remember the equipped cosmetics after refreshing.
+    localStorage.setItem(
+        "questify_equipment",
+        JSON.stringify(equippedCosmetics)
+    );
+
+    // Apply the Forest Background to the avatar.
+    updateAvatarBackground();
+
     renderShop();
 }
+
 
 function renderShop() {
     shopContainer.replaceChildren();
@@ -289,5 +321,5 @@ document.querySelectorAll('.shop-category').forEach(button => {
         renderShop();
     });
 });
-
+updateAvatarBackground();
 loadShop();
