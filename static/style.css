@@ -531,6 +531,11 @@ button:focus-visible {
     z-index: 4;
 }
 
+/* The female body has a narrower stance, so she gets her own shoe sheet. */
+.character-rig:has(.sprite-female) #item-black_shoes {
+    background-image: url('/static/images/female_black_shoes.png');
+}
+
 #item-headband {
     background-image: url('/static/images/headband.png');
     z-index: 6;

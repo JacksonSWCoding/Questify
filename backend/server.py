@@ -6,17 +6,14 @@ from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 try:
     from dotenv import load_dotenv
-
     load_dotenv(PROJECT_ROOT / ".env")
 except ImportError:
     pass
 
-# Use writable /tmp/instance on Vercel, or default local instance folder
 INSTANCE_DIR = "/tmp/instance" if os.environ.get("VERCEL") else str(PROJECT_ROOT / "instance")
 
 app = Flask(
@@ -46,15 +43,39 @@ SHOP_ITEM_ALIASES = {
 
 SHOP_BY_ID = {item["id"]: item for item in SHOP_ITEMS}
 COSMETIC_SLOTS = ("accessories", "clothes", "backgrounds")
-DEFAULT_EQUIPPED_COSMETICS = {
-    slot: None for slot in COSMETIC_SLOTS
-}
+DEFAULT_EQUIPPED_COSMETICS = {slot: None for slot in COSMETIC_SLOTS}
 
 GEAR_REQUIREMENTS = {
     "cap": ("creative", 10),
     "cape": ("coding", 30),
     "beret": ("creative", 10),
     "hoodie": ("coding", 30),
+}
+
+EQUIPMENT_REWARDS = {
+    "wizard_hat": ("general", 30),
+    "black_shoes": ("fitness", 10),
+    "headband": ("fitness", 30),
+    "dagger": ("fitness", 60),
+    "glasses": ("coding", 10),
+    "cape": ("coding", 30),
+    "wand": ("coding", 60),
+    "cap": ("creative", 10),
+    "bauldron": ("creative", 30),
+    "crystal": ("creative", 60)
+}
+
+EQUIPMENT_SLOTS = {
+    "wizard_hat": "head",
+    "headband": "head",
+    "cap": "head",
+    "glasses": "face",
+    "black_shoes": "feet",
+    "cape": "back",
+    "bauldron": "shoulders",
+    "dagger": "hand",
+    "wand": "hand",
+    "crystal": "hand"
 }
 
 
@@ -113,32 +134,6 @@ def parse_equipped_cosmetics_payload(data):
 
     return payload
 
-EQUIPMENT_REWARDS = {
-    "wizard_hat": ("general", 30),
-    "black_shoes": ("fitness", 10),
-    "headband": ("fitness", 30),
-    "dagger": ("fitness", 60),
-    "glasses": ("coding", 10),
-    "cape": ("coding", 30),
-    "wand": ("coding", 60),
-    "cap": ("creative", 10),
-    "bauldron": ("creative", 30),
-    "crystal": ("creative", 60)
-}
-
-EQUIPMENT_SLOTS = {
-    "wizard_hat": "head",
-    "headband": "head",
-    "cap": "head",
-    "glasses": "face",
-    "black_shoes": "feet",
-    "cape": "back",
-    "bauldron": "shoulders",
-    "dagger": "hand",
-    "wand": "hand",
-    "crystal": "hand"
-}
-
 
 def shop_progress(connection):
     return dict(connection.execute(
@@ -148,10 +143,8 @@ def shop_progress(connection):
 
 def shop_item_unlocked(item, progress):
     requirement = item["requires"]
-
     if requirement is None:
         return True
-
     category, threshold = GEAR_REQUIREMENTS[requirement]
     return progress.get(category, 0) >= threshold
 
@@ -167,20 +160,24 @@ def available_equipment(progress):
 def saved_equipment(connection):
     equipped = []
     occupied_slots = set()
-
-    rows = connection.execute(
-        "SELECT item_id FROM equipped_gear ORDER BY item_id"
-    )
-
+    rows = connection.execute("SELECT item_id FROM equipped_gear ORDER BY item_id")
     for row in rows:
         item_id = row[0]
         slot = EQUIPMENT_SLOTS.get(item_id)
-
         if slot is not None and slot not in occupied_slots:
             equipped.append(item_id)
             occupied_slots.add(slot)
-
     return equipped
+
+
+def dominant_trait_for(xp):
+    dominant = "general"
+    highest = 0
+    for category in ("fitness", "coding", "creative", "general"):
+        if xp.get(category, 0) > highest:
+            dominant = category
+            highest = xp[category]
+    return dominant
 
 
 def init_db():
@@ -193,71 +190,37 @@ def init_db():
                 completed INTEGER NOT NULL DEFAULT 0
             )
         """)
-
         connection.execute("""
             CREATE TABLE IF NOT EXISTS player (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 xp INTEGER NOT NULL DEFAULT 0
             )
         """)
-
-        columns = {
-            row[1]
-            for row in connection.execute("PRAGMA table_info(player)")
-        }
-
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(player)")}
         if "coins" not in columns:
             connection.execute(
-                "ALTER TABLE player ADD COLUMN coins "
-                "INTEGER NOT NULL DEFAULT 0 CHECK (coins >= 0)"
+                "ALTER TABLE player ADD COLUMN coins INTEGER NOT NULL DEFAULT 0 CHECK (coins >= 0)"
             )
-
         if "character_model" not in columns:
             connection.execute(
-                "ALTER TABLE player ADD COLUMN character_model "
-                "TEXT NOT NULL DEFAULT 'male' "
+                "ALTER TABLE player ADD COLUMN character_model TEXT NOT NULL DEFAULT 'male' "
                 "CHECK (character_model IN ('male', 'female'))"
             )
-
-        columns = {
-            row[1]
-            for row in connection.execute("PRAGMA table_info(player)")
-        }
-
         if "equipped_cosmetics" not in columns:
-            connection.execute(
-                "ALTER TABLE player ADD COLUMN equipped_cosmetics TEXT"
-            )
+            connection.execute("ALTER TABLE player ADD COLUMN equipped_cosmetics TEXT")
 
-        connection.execute("""
-            INSERT OR IGNORE INTO player (id, xp)
-            VALUES (1, 0)
-        """)
-
+        connection.execute("INSERT OR IGNORE INTO player (id, xp) VALUES (1, 0)")
         connection.execute("""
             CREATE TABLE IF NOT EXISTS category_progress (
                 category TEXT PRIMARY KEY,
                 xp INTEGER NOT NULL DEFAULT 0
             )
         """)
-
         connection.executemany(
-            "INSERT OR IGNORE INTO category_progress "
-            "(category, xp) VALUES (?, 0)",
-            [
-                ("general",),
-                ("fitness",),
-                ("coding",),
-                ("creative",)
-            ]
+            "INSERT OR IGNORE INTO category_progress (category, xp) VALUES (?, 0)",
+            [("general",), ("fitness",), ("coding",), ("creative",)]
         )
-
-        connection.execute("""
-            CREATE TABLE IF NOT EXISTS equipped_gear (
-                item_id TEXT PRIMARY KEY
-            )
-        """)
-
+        connection.execute("CREATE TABLE IF NOT EXISTS equipped_gear (item_id TEXT PRIMARY KEY)")
         connection.execute("""
             CREATE TABLE IF NOT EXISTS inventory (
                 item_id TEXT PRIMARY KEY,
@@ -265,54 +228,24 @@ def init_db():
             )
         """)
 
-        item_id_column = next(
-            (
-                row for row in connection.execute("PRAGMA table_info(inventory)")
-                if row[1] == "item_id"
-            ),
-            None,
-        )
-        if item_id_column is not None and "INT" in item_id_column[2].upper():
-            connection.execute("ALTER TABLE inventory RENAME TO inventory_numeric")
-            connection.execute("""
-                CREATE TABLE inventory (
-                    item_id TEXT PRIMARY KEY,
-                    purchased_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            connection.execute("""
-                INSERT INTO inventory (item_id, purchased_at)
-                SELECT CAST(item_id AS TEXT), purchased_at
-                FROM inventory_numeric
-            """)
-            connection.execute("DROP TABLE inventory_numeric")
-
 
 @app.get("/")
 def index():
-    return send_from_directory(
-        str(PROJECT_ROOT / "layout"),
-        "index.html"
-    )
+    return send_from_directory(str(PROJECT_ROOT / "layout"), "index.html")
 
 
 @app.get("/api/health")
 def health():
-    return jsonify({
-        "status": "ok",
-        "message": "Backend is running!"
-    })
+    return jsonify({"status": "ok", "message": "Backend is running!"})
 
 
 @app.get("/api/tasks")
 def get_tasks():
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.row_factory = sqlite3.Row
-
         rows = connection.execute(
             "SELECT id, title, category, completed FROM tasks ORDER BY id"
         ).fetchall()
-
     return jsonify([
         {
             "id": row["id"],
@@ -327,29 +260,21 @@ def get_tasks():
 @app.post("/api/tasks")
 def create_task():
     data = request.get_json(silent=True)
-
     if not isinstance(data, dict):
         return jsonify({"error": "Send a JSON object"}), 400
-
     title = data.get("title")
     category = data.get("category", "general")
-
     if not isinstance(title, str) or not title.strip():
         return jsonify({"error": "Task title is required"}), 400
-
     if category not in ("general", "fitness", "coding", "creative"):
         return jsonify({"error": "Invalid category"}), 400
-
     title = title.strip()
-
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         cursor = connection.execute(
             "INSERT INTO tasks (title, category) VALUES (?, ?)",
             (title, category)
         )
-
         task_id = cursor.lastrowid
-
     return jsonify({
         "id": task_id,
         "title": title,
@@ -362,100 +287,107 @@ def create_task():
 def complete_task(task_id):
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.row_factory = sqlite3.Row
+        task = connection.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if task is None:
+            return jsonify({"error": "Task not found"}), 404
+
+        before_progress = shop_progress(connection)
+        before_unlocked = set(available_equipment(before_progress))
+        old_player = connection.execute("SELECT xp, coins FROM player WHERE id = 1").fetchone()
+        old_level = 1 + (old_player["xp"] // 30)
 
         result = connection.execute(
-            "UPDATE tasks SET completed = 1 "
-            "WHERE id = ? AND completed = 0",
+            "UPDATE tasks SET completed = 1 WHERE id = ? AND completed = 0",
             (task_id,)
         )
 
         xp_awarded = 10 if result.rowcount == 1 else 0
-        coins_awarded = 10 if result.rowcount == 1 else 0
+        if xp_awarded > 0:
+            connection.execute(
+                "UPDATE category_progress SET xp = xp + ? WHERE category = ?",
+                (xp_awarded, task["category"])
+            )
 
-        task = connection.execute(
-            "SELECT * FROM tasks WHERE id = ?",
-            (task_id,)
-        ).fetchone()
+        after_progress = shop_progress(connection)
+        after_unlocked = available_equipment(after_progress)
+        newly_unlocked = [i for i in after_unlocked if i not in before_unlocked]
 
-        if task is None:
-            return jsonify({"error": "Task not found"}), 404
+        # Auto-equip newly unlocked items into their slot
+        if newly_unlocked:
+            current_equipped = saved_equipment(connection)
+            for new_item in newly_unlocked:
+                new_slot = EQUIPMENT_SLOTS.get(new_item)
+                current_equipped = [
+                    i for i in current_equipped if EQUIPMENT_SLOTS.get(i) != new_slot
+                ]
+                current_equipped.append(new_item)
+            connection.execute("DELETE FROM equipped_gear")
+            connection.executemany(
+                "INSERT INTO equipped_gear (item_id) VALUES (?)",
+                [(i,) for i in current_equipped]
+            )
+
+        new_total_xp = old_player["xp"] + xp_awarded
+        new_level = 1 + (new_total_xp // 30)
+        levels_gained = max(0, new_level - old_level)
+
+        coins_awarded = (
+            (10 + (new_level - 1) * 5 + levels_gained * 15 + len(newly_unlocked) * 15)
+            if xp_awarded > 0 else 0
+        )
 
         connection.execute(
             "UPDATE player SET xp = xp + ?, coins = coins + ? WHERE id = 1",
             (xp_awarded, coins_awarded)
         )
 
-        connection.execute(
-            "UPDATE category_progress SET xp = xp + ? WHERE category = ?",
-            (xp_awarded, task["category"])
-        )
-
-        player = connection.execute(
-            "SELECT xp, coins FROM player WHERE id = 1"
-        ).fetchone()
+        player = connection.execute("SELECT xp, coins FROM player WHERE id = 1").fetchone()
+        equipped = saved_equipment(connection)
 
     return jsonify({
         "task": {
             "id": task["id"],
             "title": task["title"],
             "category": task["category"],
-            "completed": bool(task["completed"])
+            "completed": True
         },
         "xp_awarded": xp_awarded,
         "coins_awarded": coins_awarded,
         "coins": player["coins"],
-        "xp": player["xp"],
-        "level": 1 + player["xp"] // 30
+        "xp": after_progress,
+        "total_xp": player["xp"],
+        "level": new_level,
+        "unlocked_items": after_unlocked,
+        "available_equipment": after_unlocked,
+        "equipped_items": equipped,
+        "newly_unlocked": newly_unlocked,
+        "dominant_trait": dominant_trait_for(after_progress),
     })
 
 
 @app.patch("/api/tasks/<int:task_id>")
 def edit_task(task_id):
     data = request.get_json(silent=True)
-
     if not isinstance(data, dict):
         return jsonify({"error": "Send a JSON object"}), 400
-
     title = data.get("title")
     category = data.get("category")
-
     if not isinstance(title, str) or not title.strip():
         return jsonify({"error": "Task title is required"}), 400
-
     if category not in ("general", "fitness", "coding", "creative"):
         return jsonify({"error": "Invalid category"}), 400
-
     title = title.strip()
-
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         result = connection.execute(
-            """
-            UPDATE tasks
-            SET title = ?, category = ?
-            WHERE id = ? AND completed = 0
-            """,
+            "UPDATE tasks SET title = ?, category = ? WHERE id = ? AND completed = 0",
             (title, category, task_id)
         )
-
         if result.rowcount == 0:
-            task = connection.execute(
-                "SELECT id FROM tasks WHERE id = ?",
-                (task_id,)
-            ).fetchone()
-
+            task = connection.execute("SELECT id FROM tasks WHERE id = ?", (task_id,)).fetchone()
             if task is None:
                 return jsonify({"error": "Task not found"}), 404
-
-            return jsonify({
-                "error": "Completed tasks cannot be edited"
-            }), 409
-
-    return jsonify({
-        "id": task_id,
-        "title": title,
-        "category": category,
-        "completed": False
-    })
+            return jsonify({"error": "Completed tasks cannot be edited"}), 409
+    return jsonify({"id": task_id, "title": title, "category": category, "completed": False})
 
 
 @app.delete("/api/tasks/<int:task_id>")
@@ -465,46 +397,24 @@ def delete_task(task_id):
             "DELETE FROM tasks WHERE id = ? AND completed = 0",
             (task_id,)
         )
-
         if result.rowcount == 0:
-            task = connection.execute(
-                "SELECT id FROM tasks WHERE id = ?",
-                (task_id,)
-            ).fetchone()
-
+            task = connection.execute("SELECT id FROM tasks WHERE id = ?", (task_id,)).fetchone()
             if task is None:
                 return jsonify({"error": "Task not found"}), 404
-
-            return jsonify({
-                "error": "Completed tasks cannot be deleted"
-            }), 409
-
-    return jsonify({
-        "message": "Task deleted",
-        "id": task_id
-    })
+            return jsonify({"error": "Completed tasks cannot be deleted"}), 409
+    return jsonify({"message": "Task deleted", "id": task_id})
 
 
 @app.get("/api/player")
 def get_player():
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.row_factory = sqlite3.Row
-
         player = connection.execute(
             "SELECT xp, coins, character_model FROM player WHERE id = 1"
         ).fetchone()
-
         equipped = saved_equipment(connection)
-
     xp = player["xp"]
     level = 1 + xp // 30
-
-    gear_rewards = [
-        {"id": "hat", "required_level": 2},
-        {"id": "sunglasses", "required_level": 3},
-        {"id": "jacket", "required_level": 4}
-    ]
-
     return jsonify({
         "xp": xp,
         "coins": player["coins"],
@@ -513,137 +423,69 @@ def get_player():
         "level": level,
         "xp_into_level": xp % 30,
         "xp_per_level": 30,
-        "unlocked_gear": [
-            gear["id"]
-            for gear in gear_rewards
-            if level >= gear["required_level"]
-        ]
     })
 
 
 @app.patch("/api/player/customization")
 def update_customization():
     data = request.get_json(silent=True)
-
     if not isinstance(data, dict):
         return jsonify({"error": "Send a JSON object"}), 400
-
     character_model = data.get("character_model")
-
     if character_model not in ("male", "female"):
-        return jsonify({
-            "error": "Character model must be male or female"
-        }), 400
-
+        return jsonify({"error": "Character model must be male or female"}), 400
     equipment = data.get("equipped_items")
-
-    if "equipped_items" in data and (
-        not isinstance(equipment, list)
-        or len(equipment) > len(EQUIPMENT_REWARDS)
-        or any(not isinstance(item, str) for item in equipment)
-    ):
-        return jsonify({
-            "error": "Equipped items must be a list of gear IDs"
-        }), 400
-
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")
-
-        if equipment is not None:
-            allowed = set(
-                available_equipment(shop_progress(connection))
-            )
-
-            if not set(equipment).issubset(allowed):
-                return jsonify({
-                    "error": "You can only equip unlocked gear"
-                }), 403
-
-            selected_items = set(equipment)
-            selected_slots = [
-                EQUIPMENT_SLOTS[item]
-                for item in selected_items
-            ]
-
-            if len(selected_slots) != len(set(selected_slots)):
-                return jsonify({
-                    "error": "Choose only one item per equipment slot"
-                }), 400
-
+        if isinstance(equipment, list):
+            allowed = set(available_equipment(shop_progress(connection)))
+            valid_items = [i for i in equipment if i in allowed and i in EQUIPMENT_SLOTS]
             connection.execute("DELETE FROM equipped_gear")
-
             connection.executemany(
                 "INSERT INTO equipped_gear (item_id) VALUES (?)",
-                [(item,) for item in sorted(set(equipment))]
+                [(item,) for item in sorted(set(valid_items))]
             )
-
         connection.execute(
             "UPDATE player SET character_model = ? WHERE id = 1",
             (character_model,)
         )
-
         equipped = saved_equipment(connection)
-
-    return jsonify({
-        "character_model": character_model,
-        "equipped_items": equipped
-    })
+    return jsonify({"character_model": character_model, "equipped_items": equipped})
 
 
 @app.get("/api/character-state")
 def character_state():
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.execute("BEGIN")
-
         xp = shop_progress(connection)
         equipped = saved_equipment(connection)
-
-        coins = connection.execute(
-            "SELECT coins FROM player WHERE id = 1"
-        ).fetchone()[0]
-
+        coins = connection.execute("SELECT coins FROM player WHERE id = 1").fetchone()[0]
+        owned_ids = [
+            normalize_shop_item_id(row[0])
+            for row in connection.execute("SELECT item_id FROM inventory").fetchall()
+        ]
     unlocked_items = available_equipment(xp)
-
-    dominant_trait = "general"
-    highest_xp = 0
-
-    for category in ("fitness", "coding", "creative", "general"):
-        if xp.get(category, 0) > highest_xp:
-            dominant_trait = category
-            highest_xp = xp[category]
-
     return jsonify({
         "xp": xp,
         "unlocked_items": unlocked_items,
-        "available_equipment": available_equipment(xp),
+        "available_equipment": unlocked_items,
         "equipped_items": equipped,
+        "owned_cosmetics": owned_ids,
         "coins": coins,
         "newly_unlocked": [],
-        "dominant_trait": dominant_trait
+        "dominant_trait": dominant_trait_for(xp)
     })
 
 
 @app.post("/api/reset-state")
 def reset_state():
-    data = request.get_json(silent=True)
-
-    if not isinstance(data, dict):
-        return jsonify({"error": "Send a JSON object"}), 400
-
-    if data.get("mode") != "reset":
-        return jsonify({"error": "Only reset mode is supported"}), 400
-
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.execute(
-            "UPDATE player SET xp = 0 WHERE id = 1"
+            "UPDATE player SET xp = 0, coins = 0, equipped_cosmetics = NULL WHERE id = 1"
         )
-
-        connection.execute(
-            "UPDATE category_progress SET xp = 0"
-        )
-
+        connection.execute("UPDATE category_progress SET xp = 0")
         connection.execute("DELETE FROM equipped_gear")
-
+        connection.execute("DELETE FROM inventory")
     return character_state()
 
 
@@ -651,21 +493,13 @@ def reset_state():
 def get_shop():
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.execute("BEGIN")
-
-        coins = connection.execute(
-            "SELECT coins FROM player WHERE id = 1"
-        ).fetchone()[0]
-
+        coins = connection.execute("SELECT coins FROM player WHERE id = 1").fetchone()[0]
         owned_ids = {
             normalize_shop_item_id(row[0])
-            for row in connection.execute(
-                "SELECT item_id FROM inventory"
-            ).fetchall()
+            for row in connection.execute("SELECT item_id FROM inventory").fetchall()
         }
-
         progress = shop_progress(connection)
         equipped_cosmetics = load_equipped_cosmetics(connection)
-
     return jsonify({
         "coins": coins,
         "equipped_cosmetics": equipped_cosmetics,
@@ -682,100 +516,50 @@ def get_shop():
 
 @app.patch("/api/player/shop-equipment")
 def update_shop_equipment():
-    payload = parse_equipped_cosmetics_payload(
-        request.get_json(silent=True)
-    )
-
+    payload = parse_equipped_cosmetics_payload(request.get_json(silent=True))
     if payload is None:
         return jsonify({"error": "Invalid shop equipment payload"}), 400
-
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")
-
         owned_ids = {
             normalize_shop_item_id(row[0])
-            for row in connection.execute(
-                "SELECT item_id FROM inventory"
-            ).fetchall()
+            for row in connection.execute("SELECT item_id FROM inventory").fetchall()
         }
-
         for slot in COSMETIC_SLOTS:
             item_id = payload[slot]
             if item_id is not None and item_id not in owned_ids:
-                return jsonify({
-                    "error": f"You do not own {item_id}"
-                }), 403
-
+                return jsonify({"error": f"You do not own {item_id}"}), 403
         connection.execute(
-            """
-            UPDATE player
-            SET equipped_cosmetics = ?
-            WHERE id = 1
-            """,
+            "UPDATE player SET equipped_cosmetics = ? WHERE id = 1",
             (json.dumps(payload),)
         )
-
     return jsonify(payload)
 
 
 @app.post("/api/shop/<item_id>/purchase")
 def purchase_item(item_id):
     item_id = normalize_shop_item_id(item_id)
-    item = next(
-        (item for item in SHOP_ITEMS if item["id"] == item_id),
-        None
-    )
-
+    item = next((i for i in SHOP_ITEMS if i["id"] == item_id), None)
     if item is None:
         return jsonify({"error": "Item not found"}), 404
-
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")
-
         owned = connection.execute(
-            "SELECT item_id FROM inventory WHERE item_id = ?",
-            (item_id,)
+            "SELECT item_id FROM inventory WHERE item_id = ?", (item_id,)
         ).fetchone()
-
         if owned is not None:
-            return jsonify({
-                "error": "You already own this item"
-            }), 409
-
+            return jsonify({"error": "You already own this item"}), 409
         if not shop_item_unlocked(item, shop_progress(connection)):
-            return jsonify({
-                "error": (
-                    f"Unlock {item['requires']} "
-                    "before purchasing this item"
-                )
-            }), 403
-
+            return jsonify({"error": f"Unlock {item['requires']} before purchasing this item"}), 403
         result = connection.execute(
-            """
-            UPDATE player
-            SET coins = coins - ?
-            WHERE id = 1 AND coins >= ?
-            """,
+            "UPDATE player SET coins = coins - ? WHERE id = 1 AND coins >= ?",
             (item["price"], item["price"])
         )
-
         if result.rowcount == 0:
             return jsonify({"error": "Not enough coins"}), 409
-
-        connection.execute(
-            "INSERT INTO inventory (item_id) VALUES (?)",
-            (item_id,)
-        )
-
-        coins = connection.execute(
-            "SELECT coins FROM player WHERE id = 1"
-        ).fetchone()[0]
-
-    return jsonify({
-        "message": "Item purchased",
-        "item": item,
-        "coins": coins
-    }), 201
+        connection.execute("INSERT INTO inventory (item_id) VALUES (?)", (item_id,))
+        coins = connection.execute("SELECT coins FROM player WHERE id = 1").fetchone()[0]
+    return jsonify({"message": "Item purchased", "item": item, "coins": coins}), 201
 
 
 init_db()

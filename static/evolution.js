@@ -64,29 +64,69 @@ const EQUIPMENT_SLOTS = {
     crystal: 'hand'
 };
 
+const GEAR_ICONS = {
+    wizard_hat: '🧙',
+    black_shoes: '👟',
+    headband: '🎽',
+    dagger: '🗡️',
+    glasses: '👓',
+    cape: '🦸',
+    wand: '🪄',
+    cap: '🧢',
+    bauldron: '🛡️',
+    crystal: '🔮'
+};
+window.GEAR_ICONS = GEAR_ICONS;
+
 let unlockedEquipment = new Set();
 let savedEquipment = new Set();
 let pendingEquipment = new Set();
 let editingEquipment = false;
 let equipmentBusy = false;
+let hasInitializedState = false;
+let unlockBannerTimer = null;
 
 function selectedEquipment() {
     return [...pendingEquipment];
 }
 
+function clearEvolutionHeadSlot() {
+    for (const id of [...pendingEquipment]) {
+        if (EQUIPMENT_SLOTS[id] === 'head') {
+            pendingEquipment.delete(id);
+        }
+    }
+    for (const id of [...savedEquipment]) {
+        if (EQUIPMENT_SLOTS[id] === 'head') {
+            savedEquipment.delete(id);
+        }
+    }
+    applyEquipment();
+    renderEquipment();
+}
+window.clearEvolutionHeadSlot = clearEvolutionHeadSlot;
+
 function applyEquipment() {
+    const shopHatEquipped =
+        document.getElementById('item-red_hat')?.classList.contains('equipped') ||
+        document.getElementById('item-blue_hat')?.classList.contains('equipped');
+
     for (const id of Object.keys(EQUIPMENT)) {
         const layer = document.getElementById('item-' + id);
+        const isHeadItem = EQUIPMENT_SLOTS[id] === 'head';
 
         layer?.classList.toggle(
             'equipped',
-            unlockedEquipment.has(id) && pendingEquipment.has(id)
+            unlockedEquipment.has(id) &&
+            pendingEquipment.has(id) &&
+            !(isHeadItem && shopHatEquipped)
         );
     }
 
     document.getElementById('item-black_glasses')
         ?.classList.remove('equipped');
 }
+window.applyEquipment = applyEquipment;
 
 function setEquipmentBusy(busy) {
     equipmentBusy = busy;
@@ -137,7 +177,7 @@ function renderEquipment() {
     const intro = document.createElement('p');
     intro.className = 'equipment-note';
     intro.textContent =
-        'Evolution unlocks (earn category XP on quests). Toggle gear, then Save Changes.';
+        'Evolution unlocks (earn category XP on quests). Click an unlocked item to equip or unequip it, then Save Changes.';
     container.appendChild(intro);
 
     for (const category of [
@@ -174,8 +214,8 @@ function renderEquipment() {
                 'gear-badge' + (selected ? ' equipped' : '');
 
             button.textContent = unlocked
-                ? (selected ? '✓ ' : '') + item.name
-                : item.name + ' · ' + item.xp + ' XP';
+                ? (selected ? '✓ ' + item.name + ' · Unequip' : item.name)
+                : '🔒 ' + item.name + ' · ' + item.xp + ' XP';
 
             button.disabled =
                 !unlocked ||
@@ -199,6 +239,11 @@ function renderEquipment() {
                     }
 
                     pendingEquipment.add(id);
+
+                    // If equipping an evolution hat, unequip any active shop hat
+                    if (slot === 'head' && typeof window.unequipShopCategory === 'function') {
+                        window.unequipShopCategory('accessories');
+                    }
                 }
 
                 applyEquipment();
@@ -213,31 +258,91 @@ function renderEquipment() {
     }
 }
 
+function triggerUnlockAnimation(newlyUnlockedIds) {
+    if (!Array.isArray(newlyUnlockedIds) || newlyUnlockedIds.length === 0) {
+        return;
+    }
+
+    const latestId = newlyUnlockedIds[newlyUnlockedIds.length - 1];
+    const layer = document.getElementById('item-' + latestId);
+
+    if (layer) {
+        layer.classList.add('equipped');
+        layer.classList.remove('just-unlocked');
+        void layer.offsetWidth;
+        layer.classList.add('just-unlocked');
+    }
+
+    const message = document.getElementById('unlock-message');
+    if (message && EQUIPMENT[latestId]) {
+        const icon = GEAR_ICONS[latestId] || '✨';
+        message.textContent = `${icon} Unlocked ${EQUIPMENT[latestId].name}!`;
+        message.classList.add('visible');
+        clearTimeout(unlockBannerTimer);
+        unlockBannerTimer = setTimeout(() => {
+            message.classList.remove('visible');
+        }, 4000);
+    }
+}
+
 function updateCharacterVisuals(state) {
+    if (!state || typeof state !== 'object') return;
+
     const xp = state.xp || {};
+    const previousUnlocked = new Set(unlockedEquipment);
 
+    const rawAvailable = state.available_equipment || state.unlocked_items || [];
     unlockedEquipment = new Set(
-        (state.available_equipment || []).filter(id => EQUIPMENT[id])
+        rawAvailable.filter(id => EQUIPMENT[id])
     );
 
-    savedEquipment = new Set(
-        (state.equipped_items || []).filter(id => {
-            return unlockedEquipment.has(id);
-        })
-    );
+    const newlyUnlocked = Array.isArray(state.newly_unlocked) && state.newly_unlocked.length > 0
+        ? state.newly_unlocked.filter(id => EQUIPMENT[id])
+        : (hasInitializedState
+            ? [...unlockedEquipment].filter(id => !previousUnlocked.has(id))
+            : []);
+
+    if (Array.isArray(state.equipped_items)) {
+        savedEquipment = new Set(
+            state.equipped_items.filter(id => unlockedEquipment.has(id))
+        );
+    }
+
+    if (newlyUnlocked.length > 0) {
+        for (const id of newlyUnlocked) {
+            const slot = EQUIPMENT_SLOTS[id];
+            for (const existing of [...savedEquipment]) {
+                if (EQUIPMENT_SLOTS[existing] === slot) {
+                    savedEquipment.delete(existing);
+                }
+            }
+            savedEquipment.add(id);
+
+            if (slot === 'head' && typeof window.unequipShopCategory === 'function') {
+                window.unequipShopCategory('accessories');
+            }
+        }
+    }
 
     if (!editingEquipment) {
         pendingEquipment = new Set(savedEquipment);
     } else {
         pendingEquipment = new Set(
-            [...pendingEquipment].filter(id => {
-                return unlockedEquipment.has(id);
-            })
+            [...pendingEquipment].filter(id => unlockedEquipment.has(id))
         );
     }
 
     applyEquipment();
+    if (typeof window.applyShopWearables === 'function') {
+        window.applyShopWearables();
+    }
     renderEquipment();
+
+    if (newlyUnlocked.length > 0) {
+        triggerUnlockAnimation(newlyUnlocked);
+    }
+
+    hasInitializedState = true;
 
     for (const category of [
         'general',
@@ -255,22 +360,19 @@ function updateCharacterVisuals(state) {
             category + '-xp-text'
         );
 
-        const next = [10, 30, 60].find(threshold => {
-            return threshold > value;
-        });
+        const thresholds = category === 'general' ? [30] : [10, 30, 60];
+        const next = thresholds.find(threshold => threshold > value);
 
         if (bar) {
-            const percentage = category === 'general'
-                ? value % 30 / 30 * 100
-                : Math.min(value / 60, 1) * 100;
+            const percentage = next
+                ? Math.min((value / next) * 100, 100)
+                : 100;
 
             bar.style.width = percentage + '%';
         }
 
         if (label) {
-            if (category === 'general') {
-                label.textContent = (value % 30) + ' / 30 XP';
-            } else if (next) {
+            if (next) {
                 label.textContent = value + ' / ' + next + ' XP';
             } else {
                 label.textContent = value + ' XP ★';

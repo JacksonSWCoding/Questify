@@ -10,10 +10,8 @@ import nessie_service
 
 app = Flask(__name__, static_folder="static")
 
-# ---------------------------------------------------------------------------
-# Tasks + player choices (saved to a small JSON file so they survive restarts)
-# ---------------------------------------------------------------------------
-DATA_FILE = os.path.join(app.root_path, "questify_data.json")
+DATA_DIR = "/tmp" if os.environ.get("VERCEL") else app.root_path
+DATA_FILE = os.path.join(DATA_DIR, "questify_data.json")
 TASK_CATEGORIES = ("general", "fitness", "coding", "creative")
 CHARACTER_MODELS = ("male", "female")
 TASK_XP = 10
@@ -27,7 +25,6 @@ def _default_data():
 
 
 def _load_data():
-    """Read the data file. Caller must hold _data_lock."""
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as handle:
             data = json.load(handle)
@@ -39,7 +36,6 @@ def _load_data():
 
 
 def _save_data(data):
-    """Write the data file atomically. Caller must hold _data_lock."""
     directory = os.path.dirname(DATA_FILE) or "."
     fd, tmp_path = tempfile.mkstemp(dir=directory, suffix=".tmp")
     try:
@@ -56,27 +52,40 @@ def _find_task(data, task_id):
     return next((task for task in data["tasks"] if task["id"] == task_id), None)
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 def _with_wallet(state):
     try:
         state.update(nessie_service.wallet_snapshot())
     except nessie_service.NessieError as exc:
+        state["coins"] = 0
+        state["owned_cosmetics"] = []
         state["wallet_error"] = str(exc)
     return state
 
 
 def _award_task(category, title, xp_amount=TASK_XP):
-    """Give XP (and the coin reward) for a finished task; returns the full state payload."""
+    """Give XP and scale coin rewards as the character levels up and unlocks gear."""
     state = evolution_logic.process_task_completion(
         category,
         task_title=title,
         xp_amount=xp_amount,
     )
+    level = state.get("level", 1)
+    levels_gained = state.get("levels_gained", 0)
+    newly_unlocked = state.get("newly_unlocked", [])
+
+    # Coins start at 0 and scale up with character level + level-up/unlock bonuses
+    reward_coins = (
+        nessie_service.TASK_REWARD
+        + (level - 1) * 5
+        + (levels_gained * nessie_service.LEVEL_UP_BONUS)
+        + (len(newly_unlocked) * nessie_service.LEVEL_UP_BONUS)
+    )
     try:
-        state["coins"] = nessie_service.deposit_task_reward(title)
-        state["owned_cosmetics"] = nessie_service.wallet_snapshot()["owned_cosmetics"]
+        state["coins"] = nessie_service.deposit_task_reward(title, amount=reward_coins)
+        snap = nessie_service.wallet_snapshot()
+        state["owned_cosmetics"] = snap["owned_cosmetics"]
+        state["equipped_cosmetics"] = snap["equipped_cosmetics"]
+        state["coins_awarded"] = reward_coins
     except nessie_service.NessieError as exc:
         state["wallet_error"] = str(exc)
     return state
@@ -91,8 +100,6 @@ def _purchase(item_id):
     return jsonify(result)
 
 
-# Always answer API problems with JSON (never an HTML error page) so the page can
-# show a readable message instead of "Unexpected token '<'".
 @app.errorhandler(404)
 def not_found(error):
     if request.path.startswith("/api/"):
@@ -119,9 +126,6 @@ def index():
     return send_from_directory("layout", "index.html")
 
 
-# ---------------------------------------------------------------------------
-# Tasks
-# ---------------------------------------------------------------------------
 @app.get("/api/tasks")
 def list_tasks():
     with _data_lock:
@@ -156,6 +160,30 @@ def create_task():
     return jsonify(task), 201
 
 
+@app.patch("/api/tasks/<int:task_id>")
+def edit_task(task_id):
+    body = request.get_json(silent=True) or {}
+    title = str(body.get("title", "")).strip()
+    category = str(body.get("category", "general")).strip().lower()
+
+    if not title:
+        return jsonify({"error": "Task title is required"}), 400
+    if category not in TASK_CATEGORIES:
+        return jsonify({"error": "Invalid category"}), 400
+
+    with _data_lock:
+        data = _load_data()
+        task = _find_task(data, task_id)
+        if task is None:
+            return jsonify({"error": "Task not found"}), 404
+        if task.get("completed"):
+            return jsonify({"error": "Completed tasks cannot be edited"}), 409
+        task["title"] = title
+        task["category"] = category
+        _save_data(data)
+    return jsonify(task)
+
+
 @app.post("/api/tasks/<int:task_id>/complete")
 def complete_task_by_id(task_id):
     with _data_lock:
@@ -187,14 +215,19 @@ def delete_task(task_id):
     return jsonify({"deleted": task_id})
 
 
-# ---------------------------------------------------------------------------
-# Player (character choice)
-# ---------------------------------------------------------------------------
 @app.get("/api/player")
 def get_player():
     with _data_lock:
         data = _load_data()
-    return jsonify({"character_model": data["character_model"]})
+    char_state = evolution_logic.get_character_state()
+    wallet = nessie_service.wallet_snapshot()
+    return jsonify({
+        "character_model": data["character_model"],
+        "equipped_items": char_state["equipped_items"],
+        "coins": wallet["coins"],
+        "xp": char_state["total_xp"],
+        "level": char_state["level"],
+    })
 
 
 @app.patch("/api/player/customization")
@@ -204,16 +237,32 @@ def update_customization():
     if model not in CHARACTER_MODELS:
         return jsonify({"error": f"character_model must be one of {', '.join(CHARACTER_MODELS)}"}), 400
 
+    equipped_items = body.get("equipped_items")
+    if isinstance(equipped_items, list):
+        saved_equipped = evolution_logic.set_equipped_items(equipped_items)
+    else:
+        saved_equipped = evolution_logic.get_character_state()["equipped_items"]
+
     with _data_lock:
         data = _load_data()
         data["character_model"] = model
         _save_data(data)
-    return jsonify({"character_model": model})
+    return jsonify({
+        "character_model": model,
+        "equipped_items": saved_equipped,
+    })
 
 
-# ---------------------------------------------------------------------------
-# Evolution state, shop, reset (unchanged behaviour)
-# ---------------------------------------------------------------------------
+@app.patch("/api/player/shop-equipment")
+def update_shop_equipment():
+    body = request.get_json(silent=True) or {}
+    try:
+        equipped = nessie_service.update_equipped_cosmetics(body)
+    except nessie_service.NessieError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(equipped)
+
+
 @app.get("/api/character-state")
 def character_state():
     return jsonify(_with_wallet(evolution_logic.get_character_state()))
@@ -233,14 +282,13 @@ def complete_task():
 
 @app.get("/api/shop")
 def get_shop():
-    try:
-        wallet = nessie_service.wallet_snapshot()
-    except nessie_service.NessieError as exc:
-        return jsonify({"error": str(exc)}), 503
-
+    wallet = nessie_service.wallet_snapshot()
     owned_ids = set(wallet["owned_cosmetics"])
+    unlocked_ids = set(evolution_logic.get_character_state()["unlocked_items"])
 
     categories = {
+        "red_hat": "accessories",
+        "blue_hat": "accessories",
         "red_beret": "accessories",
         "purple_beret": "accessories",
         "blue_hoodie": "clothes",
@@ -254,18 +302,19 @@ def get_shop():
             "id": item_id,
             "name": item["name"],
             "price": item["price"],
-            "category": categories[item_id],
+            "category": categories.get(item_id, "accessories"),
             "requires": item["requires"],
             "owned": item_id in owned_ids,
+            "unlocked": item["requires"] is None or item["requires"] in unlocked_ids,
         }
         for item_id, item in nessie_service.SHOP_ITEMS.items()
     ]
 
     return jsonify({
         "coins": wallet["coins"],
+        "equipped_cosmetics": wallet["equipped_cosmetics"],
         "items": items,
     })
-
 
 
 @app.post("/api/shop/buy")
@@ -288,10 +337,9 @@ def reset_state():
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     if mode == "reset":
-        try:
-            state.update(nessie_service.reset_wallet())
-        except nessie_service.NessieError as exc:
-            state["wallet_error"] = str(exc)
+        state.update(nessie_service.reset_wallet())
+    else:
+        state = _with_wallet(state)
     return jsonify(state)
 
 

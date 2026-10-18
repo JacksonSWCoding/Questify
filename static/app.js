@@ -57,8 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
-                    if (rig.classList.contains('item-get')) return;
-
                     rig.classList.remove('item-get');
                     void rig.offsetWidth;
                     rig.classList.add('item-get');
@@ -90,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     cheerTimer = setTimeout(() => {
                         rig.classList.remove('item-get');
                         itemIcon?.classList.remove('show');
+                        newlyUnlockedItem.classList.remove('just-unlocked');
                     }, 2700);
 
                     gearResetTimer = setTimeout(() => {
@@ -214,7 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
 
         try {
-            await loadCharacterState();
+            if (result && result.xp) {
+                updateCharacterVisuals(result);
+            } else {
+                await loadCharacterState();
+            }
         } finally {
             pendingTasks.delete(id);
         }
@@ -311,9 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const confirmed = confirm(
-            'Reset all hero XP and unlocked gear? ' +
-            'Tasks, coins, purchases, and character choice will stay. ' +
-            'Completed tasks remain completed.'
+            'Reset all hero XP, coins, and unlocked gear back to 0?'
         );
 
         if (!confirmed) return;
@@ -324,12 +325,20 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
 
         try {
-            await apiRequest('/api/reset-state', {
+            const resetState = await apiRequest('/api/reset-state', {
                 method: 'POST',
                 body: JSON.stringify({ mode: 'reset' })
             });
 
-            await loadCharacterState();
+            localStorage.removeItem('questify_equipment');
+            if (typeof window.resetShopCosmetics === 'function') {
+                window.resetShopCosmetics();
+            }
+            updateCharacterVisuals(resetState);
+
+            if (typeof window.refreshCustomizerInventory === 'function') {
+                await window.refreshCustomizerInventory();
+            }
         } catch (error) {
             alert(`Could not reset progress: ${error.message}`);
         } finally {
