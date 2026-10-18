@@ -114,12 +114,31 @@ function acceptEquipment(items) {
     cancelEquipmentEdit();
 }
 
+const GEAR_LABELS = {
+    black_shoes: 'Shoes',
+    headband: 'Headband',
+    dagger: 'Dagger',
+    glasses: 'Glasses',
+    cape: 'Cape',
+    wand: 'Magic Staff',
+    cap: 'Leather Cap',
+    bauldron: 'Shoulder Armor',
+    crystal: 'Crystal',
+    wizard_hat: 'Wizard Hat'
+};
+
 function renderEquipment() {
     const container = document.getElementById('equipment-inventory');
 
     if (!container) return;
 
     container.replaceChildren();
+
+    const intro = document.createElement('p');
+    intro.className = 'equipment-note';
+    intro.textContent =
+        'Evolution unlocks (earn category XP on quests). Toggle gear, then Save Changes.';
+    container.appendChild(intro);
 
     for (const category of [
         'general',
@@ -130,15 +149,21 @@ function renderEquipment() {
         const section = document.createElement('section');
         const heading = document.createElement('h3');
 
+        const categoryItems = Object.entries(EQUIPMENT).filter(
+            ([, item]) => item.category === category
+        );
+
+        if (categoryItems.length === 0) {
+            continue;
+        }
+
         heading.textContent =
             category[0].toUpperCase() + category.slice(1);
 
         const group = document.createElement('div');
         group.className = 'inv-slot-group';
 
-        for (const [id, item] of Object.entries(EQUIPMENT)) {
-            if (item.category !== category) continue;
-
+        for (const [id, item] of categoryItems) {
             const unlocked = unlockedEquipment.has(id);
             const selected = pendingEquipment.has(id);
 

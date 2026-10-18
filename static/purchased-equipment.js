@@ -2,8 +2,8 @@ const PURCHASED_GEAR = {
     wizard_hat: { name: 'Wizard Hat', slot: 'head' },
     knight_armor: { name: 'Knight Armor', slot: 'body' },
     forest_background: { name: 'Forest Background', slot: 'background' },
-    red_beret: { name: 'Red Beret', slot: 'head' },
-    purple_beret: { name: 'Purple Beret', slot: 'head' },
+    red_hat: { name: 'Red Hat', slot: 'head' },
+    blue_hat: { name: 'Blue Hat', slot: 'head' },
     blue_hoodie: { name: 'Blue Hoodie', slot: 'body' },
     black_hoodie: { name: 'Black Hoodie', slot: 'body' },
     castle_background: { name: 'Castle Background', slot: 'background' }
@@ -51,9 +51,9 @@ function temporaryHoodie(color, highlight) {
 }
 
 const TEMPORARY_ART = {
-    red_beret: temporaryBeret('#ca3549'),
+    red_hat: temporaryBeret('#ca3549'),
 
-    purple_beret: temporaryBeret('#9755ca'),
+    blue_hat: temporaryBeret('#285fbd'),
 
     blue_hoodie: temporaryHoodie('#285fbd', '#558ee3'),
 

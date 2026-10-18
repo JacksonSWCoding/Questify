@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -6,6 +7,13 @@ from flask import Flask, jsonify, request, send_from_directory
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(PROJECT_ROOT / ".env")
+except ImportError:
+    pass
 
 app = Flask(
     __name__,
@@ -18,18 +26,87 @@ Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 DATABASE = Path(app.instance_path) / "tasks.db"
 
 SHOP_ITEMS = [
-    {"id": "red_beret", "name": "Red Beret", "price": 50, "category": "accessories", "requires": "beret"},
-    {"id": "purple_beret", "name": "Purple Beret", "price": 75, "category": "accessories", "requires": "beret"},
-    {"id": "blue_hoodie", "name": "Blue Hoodie", "price": 80, "category": "clothes", "requires": "hoodie"},
-    {"id": "black_hoodie", "name": "Black Hoodie", "price": 100, "category": "clothes", "requires": "hoodie"},
+    {"id": "red_hat", "name": "Red Hat", "price": 50, "category": "accessories", "requires": "cap"},
+    {"id": "blue_hat", "name": "Blue Hat", "price": 75, "category": "accessories", "requires": "cap"},
+    {"id": "blue_hoodie", "name": "Blue Hoodie", "price": 80, "category": "clothes", "requires": "cape"},
+    {"id": "black_hoodie", "name": "Black Hoodie", "price": 100, "category": "clothes", "requires": "cape"},
     {"id": "forest_background", "name": "Forest Background", "price": 100, "category": "backgrounds", "requires": None},
     {"id": "castle_background", "name": "Castle Background", "price": 150, "category": "backgrounds", "requires": None},
 ]
 
-GEAR_REQUIREMENTS = {
-    "beret": ("creative", 10),
-    "hoodie": ("coding", 30)
+SHOP_ITEM_ALIASES = {
+    "red_beret": "red_hat",
+    "purple_beret": "blue_hat",
 }
+
+SHOP_BY_ID = {item["id"]: item for item in SHOP_ITEMS}
+COSMETIC_SLOTS = ("accessories", "clothes", "backgrounds")
+DEFAULT_EQUIPPED_COSMETICS = {
+    slot: None for slot in COSMETIC_SLOTS
+}
+
+GEAR_REQUIREMENTS = {
+    "cap": ("creative", 10),
+    "cape": ("coding", 30),
+    "beret": ("creative", 10),
+    "hoodie": ("coding", 30),
+}
+
+
+def normalize_shop_item_id(item_id):
+    return SHOP_ITEM_ALIASES.get(item_id, item_id)
+
+
+def load_equipped_cosmetics(connection):
+    row = connection.execute(
+        "SELECT equipped_cosmetics FROM player WHERE id = 1"
+    ).fetchone()
+
+    if row is None or not row[0]:
+        return dict(DEFAULT_EQUIPPED_COSMETICS)
+
+    try:
+        data = json.loads(row[0])
+    except (TypeError, json.JSONDecodeError):
+        return dict(DEFAULT_EQUIPPED_COSMETICS)
+
+    if not isinstance(data, dict):
+        return dict(DEFAULT_EQUIPPED_COSMETICS)
+
+    payload = dict(DEFAULT_EQUIPPED_COSMETICS)
+    for slot in COSMETIC_SLOTS:
+        value = data.get(slot)
+        if value is None:
+            continue
+        if not isinstance(value, str):
+            return dict(DEFAULT_EQUIPPED_COSMETICS)
+        item_id = normalize_shop_item_id(value)
+        item = SHOP_BY_ID.get(item_id)
+        if item is None or item["category"] != slot:
+            return dict(DEFAULT_EQUIPPED_COSMETICS)
+        payload[slot] = item_id
+
+    return payload
+
+
+def parse_equipped_cosmetics_payload(data):
+    if not isinstance(data, dict):
+        return None
+
+    payload = dict(DEFAULT_EQUIPPED_COSMETICS)
+    for slot in COSMETIC_SLOTS:
+        value = data.get(slot)
+        if value is None:
+            continue
+        if not isinstance(value, str):
+            return None
+        item_id = normalize_shop_item_id(value)
+        item = SHOP_BY_ID.get(item_id)
+        if item is None or item["category"] != slot:
+            return None
+        payload[slot] = item_id
+
+    return payload
 
 EQUIPMENT_REWARDS = {
     "wizard_hat": ("general", 30),
@@ -135,6 +212,16 @@ def init_db():
                 "ALTER TABLE player ADD COLUMN character_model "
                 "TEXT NOT NULL DEFAULT 'male' "
                 "CHECK (character_model IN ('male', 'female'))"
+            )
+
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(player)")
+        }
+
+        if "equipped_cosmetics" not in columns:
+            connection.execute(
+                "ALTER TABLE player ADD COLUMN equipped_cosmetics TEXT"
             )
 
         connection.execute("""
@@ -510,30 +597,7 @@ def character_state():
             "SELECT coins FROM player WHERE id = 1"
         ).fetchone()[0]
 
-    rewards = {
-        "fitness": [
-            (10, "headband"),
-            (30, "dumbbells"),
-            (60, "muscle_upgrade")
-        ],
-        "coding": [
-            (10, "glasses"),
-            (30, "hoodie"),
-            (60, "computer_desk")
-        ],
-        "creative": [
-            (10, "beret"),
-            (30, "paintbrush"),
-            (60, "easel")
-        ]
-    }
-
-    unlocked_items = [
-        item
-        for category, tiers in rewards.items()
-        for threshold, item in tiers
-        if xp.get(category, 0) >= threshold
-    ]
+    unlocked_items = available_equipment(xp)
 
     dominant_trait = "general"
     highest_xp = 0
@@ -588,16 +652,18 @@ def get_shop():
         ).fetchone()[0]
 
         owned_ids = {
-            row[0]
+            normalize_shop_item_id(row[0])
             for row in connection.execute(
                 "SELECT item_id FROM inventory"
             ).fetchall()
         }
 
         progress = shop_progress(connection)
+        equipped_cosmetics = load_equipped_cosmetics(connection)
 
     return jsonify({
         "coins": coins,
+        "equipped_cosmetics": equipped_cosmetics,
         "items": [
             {
                 **item,
@@ -609,8 +675,47 @@ def get_shop():
     })
 
 
+@app.patch("/api/player/shop-equipment")
+def update_shop_equipment():
+    payload = parse_equipped_cosmetics_payload(
+        request.get_json(silent=True)
+    )
+
+    if payload is None:
+        return jsonify({"error": "Invalid shop equipment payload"}), 400
+
+    with closing(sqlite3.connect(DATABASE)) as connection, connection:
+        connection.execute("BEGIN IMMEDIATE")
+
+        owned_ids = {
+            normalize_shop_item_id(row[0])
+            for row in connection.execute(
+                "SELECT item_id FROM inventory"
+            ).fetchall()
+        }
+
+        for slot in COSMETIC_SLOTS:
+            item_id = payload[slot]
+            if item_id is not None and item_id not in owned_ids:
+                return jsonify({
+                    "error": f"You do not own {item_id}"
+                }), 403
+
+        connection.execute(
+            """
+            UPDATE player
+            SET equipped_cosmetics = ?
+            WHERE id = 1
+            """,
+            (json.dumps(payload),)
+        )
+
+    return jsonify(payload)
+
+
 @app.post("/api/shop/<item_id>/purchase")
 def purchase_item(item_id):
+    item_id = normalize_shop_item_id(item_id)
     item = next(
         (item for item in SHOP_ITEMS if item["id"] == item_id),
         None
@@ -668,6 +773,7 @@ def purchase_item(item_id):
     }), 201
 
 
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
