@@ -33,6 +33,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateAvatarSprite(currentGender);
 
+ backend
+
+    let tasks = [];
+    let addingTask = false;
+    let resetting = false;
+    const pendingTasks = new Set();
+
+    const rig = document.querySelector('.character-rig');
+    const stage = document.querySelector('.character-stage');
+    let cheerTimer = null;
+    let gearResetTimer = null;
+
+    if (rig && stage) {
+        new MutationObserver(records => {
+            records.forEach(record => {
+                const target = record.target;
+                const oldValues = (record.oldValue || '').split(/\s+/);
+
+                if (
+                    target.classList.contains('gear-layer') &&
+                    target.classList.contains('just-unlocked') &&
+                    !oldValues.includes('just-unlocked')
+                ) {
+                    const newlyUnlockedItem = target;
+
+                    document.querySelectorAll('.gear-layer').forEach(gear => {
+                        if (gear !== newlyUnlockedItem) {
+                            gear.classList.remove('just-unlocked');
+                        }
+                    });
+
+                    if (rig.classList.contains('item-get')) return;
+
+                    rig.classList.remove('item-get');
+                    void rig.offsetWidth;
+                    rig.classList.add('item-get');
+
+                    const allGears = document.querySelectorAll('.gear-layer');
+                    allGears.forEach(gear => {
+                        if (gear !== newlyUnlockedItem) {
+                            gear.style.setProperty('opacity', '0', 'important');
+                            gear.style.setProperty(
+                                'visibility',
+                                'hidden',
+                                'important'
+                            );
+                        }
+                    });
+
+                    clearTimeout(cheerTimer);
+                    clearTimeout(gearResetTimer);
+
+                    // Hold the new item up overhead
+                    const itemIcon = document.getElementById('item-get-icon');
+                    if (itemIcon) {
+                        const itemId = newlyUnlockedItem.id.replace('item-', '');
+                        itemIcon.innerHTML = (typeof GEAR_ICONS !== 'undefined' && GEAR_ICONS[itemId]) || '✨';
+                        itemIcon.classList.remove('show');
+                        void itemIcon.offsetWidth;
+                        itemIcon.classList.add('show');
+                    }
+
+                    cheerTimer = setTimeout(() => {
+                        rig.classList.remove('item-get');
+                        itemIcon?.classList.remove('show');
+                    }, 2700);
+
+                    gearResetTimer = setTimeout(() => {
+                        allGears.forEach(gear => {
+                            gear.style.removeProperty('opacity');
+                            gear.style.removeProperty('visibility');
+                        });
+                    }, 2200);
+                }
+            });
+        }).observe(stage, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class'],
+            attributeOldValue: true
+        });
+    }
+
+ main
     async function apiRequest(url, options = {}) {
         const response = await fetch(url, {
             ...options,
@@ -42,10 +126,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const data = await response.json();
+        // Read as text first: if the server sends an HTML error page (missing route,
+        // crash, old server still running) we can explain it instead of showing
+        // "Unexpected token '<'".
+        const text = await response.text();
+        let data = {};
+
+        if (text) {
+            try {
+                data = JSON.parse(text);
+            } catch (parseError) {
+                throw new Error(
+                    `The server sent an unexpected response (${response.status}) for ` +
+                    `${options.method || 'GET'} ${url}. ` +
+                    'Is the Flask server up to date and running?'
+                );
+            }
+        }
 
         if (!response.ok) {
-            throw new Error(data.error || 'The request failed');
+            throw new Error(data.error || `The request failed (${response.status})`);
         }
 
         return data;
@@ -126,7 +226,14 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
 
         try {
-            await loadCharacterState();
+            // The complete endpoint returns the updated hero state, including
+            // "newly_unlocked". Use it directly so the unlock animation plays; a plain
+            // GET /api/character-state would report newly_unlocked as empty.
+            if (result && result.xp) {
+                updateCharacterVisuals(result);
+            } else {
+                await loadCharacterState();
+            }
         } finally {
             pendingTasks.delete(id);
         }
@@ -287,6 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
+            deleteBtn.className = 'delete-btn';
             deleteBtn.textContent = 'Delete';
             deleteBtn.setAttribute('aria-label', `Delete ${task.title}`);
             deleteBtn.disabled = resetting || pendingTasks.has(task.id);
@@ -320,6 +428,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let savingCustomization = false;
     let customizationLoaded = false;
 
+    let modalSnapshot = null;
+
     function updateCustomizationControls() {
         const busy =
             loadingCustomization ||
@@ -333,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (closeModalBtn) closeModalBtn.disabled = busy;
 
         if (saveCustomizationBtn) {
-            saveCustomizationBtn.disabled = busy || !customizationLoaded;
+            saveCustomizationBtn.disabled = busy;
         }
 
         genderBtns.forEach(btn => {
@@ -343,6 +453,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 'active',
                 btn.dataset.gender === pendingGender
             );
+        });
+    }
+
+    function syncGenderButtons() {
+        genderBtns.forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.gender === currentGender);
         });
     }
 
@@ -385,21 +501,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     customizeBtn?.addEventListener('click', async () => {
+ backend
         const loaded = await loadCustomization();
 
         if (loaded) {
             beginEquipmentEdit();
             customizerModal?.classList.remove('hidden');
         }
+
+        modalSnapshot = {
+            gender: currentGender,
+            equipped: snapshotEquipped(),
+        };
+        customizerModal?.classList.remove('hidden');
+        await loadCustomization();
+ main
     });
 
     closeModalBtn?.addEventListener('click', () => {
         if (loadingCustomization || savingCustomization || resetting) return;
 
+ backend
         pendingGender = currentGender;
         updateAvatarSprite(currentGender);
         cancelEquipmentEdit();
         updateCustomizationControls();
+
+        if (modalSnapshot) {
+            currentGender = modalSnapshot.gender;
+            pendingGender = currentGender;
+            syncGenderButtons();
+            restoreEquipped(modalSnapshot.equipped);
+            saveEquipped(); // keep the stored gear in sync with what Cancel restored
+            updateAvatarSprite(currentGender);
+            modalSnapshot = null;
+        }
+ main
 
         customizerModal?.classList.add('hidden');
     });
@@ -420,6 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     saveCustomizationBtn?.addEventListener('click', async () => {
+ backend
         if (
             loadingCustomization ||
             savingCustomization ||
@@ -427,10 +565,14 @@ document.addEventListener('DOMContentLoaded', () => {
             !customizationLoaded
         ) return;
 
+        if (loadingCustomization || savingCustomization) return;
+ main
+
         savingCustomization = true;
         updateCustomizationControls();
 
         try {
+ backend
             const result = await apiRequest('/api/player/customization', {
                 method: 'PATCH',
                 body: JSON.stringify({
@@ -445,6 +587,27 @@ document.addEventListener('DOMContentLoaded', () => {
             pendingGender = currentGender;
 
             updateAvatarSprite(currentGender);
+
+            // Gear choices are stored in the browser, so they are always saved, even
+            // if the character-choice request below fails.
+            saveEquipped();
+
+            // Only talk to the server when the body type actually changed.
+            if (customizationLoaded && pendingGender !== currentGender) {
+                const result = await apiRequest('/api/player/customization', {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        character_model: pendingGender
+                    })
+                });
+
+                currentGender = result.character_model;
+                pendingGender = currentGender;
+                updateAvatarSprite(currentGender);
+            }
+
+            modalSnapshot = null;
+ main
             customizerModal?.classList.add('hidden');
         } catch (error) {
             alert(`Could not save character choice: ${error.message}`);

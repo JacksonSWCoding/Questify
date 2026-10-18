@@ -152,23 +152,23 @@ class BackendTests(unittest.TestCase):
     def test_purchase_charges_once_and_saves_ownership(self):
         self.earn_coins(6)
 
-        response = self.client.post("/api/shop/1/purchase")
+        response = self.client.post("/api/shop/red_beret/purchase")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.get_json()["coins"], 10)
 
-        repeated = self.client.post("/api/shop/1/purchase")
+        repeated = self.client.post("/api/shop/red_beret/purchase")
         self.assertEqual(repeated.status_code, 409)
 
         shop = self.get_shop()
         self.assertEqual(shop["coins"], 10)
 
-        hat = next(item for item in shop["items"] if item["id"] == 1)
+        hat = next(item for item in shop["items"] if item["id"] == "red_beret")
         self.assertTrue(hat["owned"])
 
     def test_insufficient_coins_preserves_balance_and_inventory(self):
         self.earn_coins(1)
 
-        response = self.client.post("/api/shop/1/purchase")
+        response = self.client.post("/api/shop/red_beret/purchase")
         self.assertEqual(response.status_code, 409)
 
         shop = self.get_shop()
@@ -250,7 +250,7 @@ class BackendTests(unittest.TestCase):
     def test_xp_reset_preserves_coins_inventory_and_customization(self):
         self.earn_coins(6)
 
-        purchase = self.client.post("/api/shop/1/purchase")
+        purchase = self.client.post("/api/shop/red_beret/purchase")
         self.assertEqual(purchase.status_code, 201)
 
         customization = self.client.patch(
@@ -275,7 +275,7 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(character["unlocked_items"], [])
 
         shop = self.get_shop()
-        hat = next(item for item in shop["items"] if item["id"] == 1)
+        hat = next(item for item in shop["items"] if item["id"] == "red_beret")
         self.assertTrue(hat["owned"])
 
         tasks = self.client.get("/api/tasks").get_json()

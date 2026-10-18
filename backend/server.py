@@ -18,6 +18,7 @@ Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 DATABASE = Path(app.instance_path) / "tasks.db"
 
 SHOP_ITEMS = [
+  backend
     {
         "id": 1,
         "name": "Wizard Hat",
@@ -74,6 +75,14 @@ SHOP_ITEMS = [
         "category": "backgrounds",
         "requires": None
     }
+
+    {"id": "red_beret", "name": "Red Beret", "price": 50, "category": "accessories", "requires": "beret"},
+    {"id": "purple_beret", "name": "Purple Beret", "price": 75, "category": "accessories", "requires": "beret"},
+    {"id": "blue_hoodie", "name": "Blue Hoodie", "price": 80, "category": "clothes", "requires": "hoodie"},
+    {"id": "black_hoodie", "name": "Black Hoodie", "price": 100, "category": "clothes", "requires": "hoodie"},
+    {"id": "forest_background", "name": "Forest Background", "price": 100, "category": "backgrounds", "requires": None},
+    {"id": "castle_background", "name": "Castle Background", "price": 150, "category": "backgrounds", "requires": None},
+ main
 ]
 
 GEAR_REQUIREMENTS = {
@@ -218,10 +227,32 @@ def init_db():
 
         connection.execute("""
             CREATE TABLE IF NOT EXISTS inventory (
-                item_id INTEGER PRIMARY KEY,
+                item_id TEXT PRIMARY KEY,
                 purchased_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        item_id_column = next(
+            (
+                row for row in connection.execute("PRAGMA table_info(inventory)")
+                if row[1] == "item_id"
+            ),
+            None,
+        )
+        if item_id_column is not None and "INT" in item_id_column[2].upper():
+            connection.execute("ALTER TABLE inventory RENAME TO inventory_numeric")
+            connection.execute("""
+                CREATE TABLE inventory (
+                    item_id TEXT PRIMARY KEY,
+                    purchased_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            connection.execute("""
+                INSERT INTO inventory (item_id, purchased_at)
+                SELECT CAST(item_id AS TEXT), purchased_at
+                FROM inventory_numeric
+            """)
+            connection.execute("DROP TABLE inventory_numeric")
 
 
 @app.get("/")
@@ -637,7 +668,7 @@ def get_shop():
     })
 
 
-@app.post("/api/shop/<int:item_id>/purchase")
+@app.post("/api/shop/<item_id>/purchase")
 def purchase_item(item_id):
     item = next(
         (item for item in SHOP_ITEMS if item["id"] == item_id),

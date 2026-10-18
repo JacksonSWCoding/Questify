@@ -5,24 +5,95 @@ const shopContainer = document.getElementById('shop-items');
 const inventoryContainer = document.getElementById('shop-inventory');
 const coinDisplay = document.getElementById('shop-coins');
 
+ backend
 let shopItems = [];
 let available = false;
+
+// The hero's gear was renamed when new items were added. Any shop item that still asks
+// for an old gear name is translated to the gear that now sits in the same tier
+// (creative tier 1: beret -> cap, coding tier 2: hoodie -> cape).
+const LEGACY_GEAR_RENAMES = {
+    beret: 'cap',
+    hoodie: 'cape'
+};
+
+function currentGearName(requirement) {
+    return LEGACY_GEAR_RENAMES[requirement] || requirement;
+}
+
+// Fallback items with Category Evolution 'requires' rules in case /api/shop doesn't include 'requires'
+const DEFAULT_SHOP_ITEMS = [
+    { id: 'red_beret', name: 'Red Beret', price: 50, category: 'accessories', requires: 'cap', owned: false },
+    { id: 'purple_beret', name: 'Purple Beret', price: 75, category: 'accessories', requires: 'cap', owned: false },
+    { id: 'blue_hoodie', name: 'Blue Hoodie', price: 80, category: 'clothes', requires: 'cape', owned: false },
+    { id: 'black_hoodie', name: 'Black Hoodie', price: 100, category: 'clothes', requires: 'cape', owned: false },
+    { id: 'forest_background', name: 'Forest Background', price: 100, category: 'backgrounds', requires: null, owned: false },
+    { id: 'castle_background', name: 'Castle Background', price: 150, category: 'backgrounds', requires: null, owned: false }
+];
+
+// Map item IDs to their category evolution requirements
+const ITEM_REQUIREMENTS = {
+    red_beret: 'cap',
+    purple_beret: 'cap',
+    blue_hoodie: 'cape',
+    black_hoodie: 'cape'
+};
+
+let shopItems = [...DEFAULT_SHOP_ITEMS];
+let unlockedGear = [];
+let ownedCosmeticIds = new Set();
+
+const savedEquipment = JSON.parse(
+    localStorage.getItem("questify_equipment") || "{}"
+);
+
+let equippedCosmetics = {
+    accessories: savedEquipment.accessories ?? null,
+    clothes: savedEquipment.clothes ?? null,
+    backgrounds: savedEquipment.backgrounds ?? null
+};
+
+let coins = 0;
+ main
 let selectedCategory = 'all';
 let coins = 0;
 let loading = false;
 let purchasing = false;
 
+function showCoins(amount) {
+    const label = `${amount} coins`;
+    if (coinDisplay) coinDisplay.textContent = label;
+    const wallet = document.getElementById('wallet-balance');
+    if (wallet) wallet.textContent = label;
+}
+
 async function shopRequest(url, options = {}) {
     const response = await fetch(url, options);
-    const data = await response.json();
+
+    // Read as text first so an HTML error page gives a readable message
+    // instead of "Unexpected token '<'".
+    const text = await response.text();
+    let data = {};
+
+    if (text) {
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            throw new Error(
+                `The server sent an unexpected response (${response.status}) for ` +
+                `${options.method || 'GET'} ${url}`
+            );
+        }
+    }
 
     if (!response.ok) {
-        throw new Error(data.error || 'The request failed');
+        throw new Error(data.error || `The request failed (${response.status})`);
     }
 
     return data;
 }
 
+ backend
 function updateCoins() {
     if (coinDisplay) {
         coinDisplay.textContent = coins;
@@ -32,6 +103,29 @@ function updateCoins() {
 
     if (wallet) {
         wallet.textContent = `${coins} coins`;
+
+async function loadUnlockedGear() {
+    try {
+        const response = await fetch('/api/character-state');
+        if (response.ok) {
+            const player = await response.json();
+            unlockedGear = player.unlocked_items || [];
+            if (player.coins !== undefined && player.coins !== null) {
+                showCoins(player.coins);
+            }
+            // Remember what the wallet says is owned, so "Owned" survives a page reload
+            // even when /api/shop is not available.
+            if (Array.isArray(player.owned_cosmetics)) {
+                ownedCosmeticIds = new Set(
+                    player.owned_cosmetics.map(entry =>
+                        typeof entry === 'string' ? entry : (entry.id ?? entry.item_id)
+                    )
+                );
+            }
+        }
+    } catch (error) {
+        console.warn('Could not load character state for gear requirements:', error);
+ main
     }
 }
 
@@ -45,14 +139,30 @@ async function loadShop() {
     try {
         const data = await shopRequest('/api/shop');
 
+ backend
         coins = data.coins;
         shopItems = data.items;
         available = true;
 
         updateCoins();
+
+        coins = data.coins ?? coins;
+        if (Array.isArray(data.items)) {
+            shopItems = data.items.map(item => ({
+                ...item,
+                requires: currentGearName(
+                    item.requires !== undefined ? item.requires : (ITEM_REQUIREMENTS[item.id] || null)
+                )
+            }));
+        }
+        showCoins(coins);
+ main
     } catch (error) {
         alert(`Could not load shop: ${error.message}`);
     } finally {
+        shopItems.forEach(item => {
+            if (ownedCosmeticIds.has(item.id)) item.owned = true;
+        });
         loading = false;
         renderShop();
     }
@@ -78,8 +188,11 @@ async function purchaseItem(itemId) {
 
         coins = result.coins;
         item.owned = true;
+ backend
 
         updateCoins();
+        showCoins(coins);
+ main
     } catch (error) {
         alert(`Could not purchase item: ${error.message}`);
     } finally {
@@ -90,6 +203,43 @@ async function purchaseItem(itemId) {
     await loadShop();
 }
 
+ backend
+
+
+function updateAvatarBackground() {
+    const characterStage = document.querySelector(".character-stage");
+    if (!characterStage) return;
+
+    const forestEquipped =
+        equippedCosmetics.backgrounds === "forest_background" ||
+        equippedCosmetics.backgrounds === 3;
+
+    characterStage.classList.toggle(
+        "forest-background",
+        forestEquipped
+    );
+}
+
+function equipItem(itemId) {
+    const item = shopItems.find(product => product.id === itemId);
+    if (!item || !item.owned) return;
+
+    equippedCosmetics[item.category] = item.id;
+
+    // Remember the equipped cosmetics after refreshing.
+    localStorage.setItem(
+        "questify_equipment",
+        JSON.stringify(equippedCosmetics)
+    );
+
+    // Apply the Forest Background to the avatar.
+    updateAvatarBackground();
+
+    renderShop();
+}
+
+
+ main
 function renderShop() {
     shopContainer.replaceChildren();
     inventoryContainer.replaceChildren();
@@ -129,8 +279,14 @@ function renderShop() {
 
         if (item.owned) {
             button.textContent = 'Owned ✓';
+ backend
         } else if (!item.unlocked) {
             button.textContent = `🔒 Requires ${item.requires}`;
+
+        } else if (!isUnlocked) {
+            const gearName = (typeof GEAR_LABELS !== 'undefined' && GEAR_LABELS[item.requires]) || item.requires;
+            button.textContent = `🔒 Requires ${gearName}`;
+ main
         } else if (coins < item.price) {
             button.textContent = 'Not enough coins';
         } else {
@@ -200,5 +356,5 @@ document.querySelectorAll('.shop-category').forEach(button => {
         renderShop();
     });
 });
-
+updateAvatarBackground();
 loadShop();
