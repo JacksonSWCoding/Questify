@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Questify">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="55%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="6" fill="#141826"/>
+  <path fill="url(#g)" d="M16 4l2.2 6.8H25l-5.5 4 2.1 6.7L16 17.4l-5.6 4.1 2.1-6.7L7 10.8h6.8L16 4z"/>
+  <path fill="#a78bfa" d="M14 22h4v6h-4z"/>
+</svg>

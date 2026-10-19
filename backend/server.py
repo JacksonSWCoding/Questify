@@ -234,6 +234,11 @@ def index():
     return send_from_directory(str(PROJECT_ROOT / "layout"), "index.html")
 
 
+@app.get("/favicon.ico")
+def favicon():
+    return send_from_directory(str(PROJECT_ROOT / "static"), "favicon.svg", mimetype="image/svg+xml")
+
+
 @app.get("/api/health")
 def health():
     return jsonify({"status": "ok", "message": "Backend is running!"})
@@ -434,22 +439,34 @@ def update_customization():
     character_model = data.get("character_model")
     if character_model not in ("male", "female"):
         return jsonify({"error": "Character model must be male or female"}), 400
+    if "equipped_items" in data and data["equipped_items"] is None:
+        return jsonify({"error": "equipped_items must be a list"}), 400
     equipment = data.get("equipped_items")
+    if equipment is not None and not isinstance(equipment, list):
+        return jsonify({"error": "equipped_items must be a list"}), 400
+
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")
-        if isinstance(equipment, list):
-            allowed = set(available_equipment(shop_progress(connection)))
-            valid_items = [i for i in equipment if i in allowed and i in EQUIPMENT_SLOTS]
+        allowed = set(available_equipment(shop_progress(connection)))
+
+        if equipment is not None:
+            for item in equipment:
+                if not isinstance(item, str) or item not in EQUIPMENT_SLOTS or item not in allowed:
+                    connection.execute("ROLLBACK")
+                    return jsonify({"error": "Invalid or locked equipment"}), 400
+
             connection.execute("DELETE FROM equipped_gear")
             connection.executemany(
                 "INSERT INTO equipped_gear (item_id) VALUES (?)",
-                [(item,) for item in sorted(set(valid_items))]
+                [(item,) for item in sorted(set(equipment))]
             )
+
         connection.execute(
             "UPDATE player SET character_model = ? WHERE id = 1",
             (character_model,)
         )
         equipped = saved_equipment(connection)
+        connection.execute("COMMIT")
     return jsonify({"character_model": character_model, "equipped_items": equipped})
 
 
@@ -479,13 +496,11 @@ def character_state():
 
 @app.post("/api/reset-state")
 def reset_state():
+    """Clear XP and evolution gear; keep coins, shop inventory, and character model."""
     with closing(sqlite3.connect(DATABASE)) as connection, connection:
-        connection.execute(
-            "UPDATE player SET xp = 0, coins = 0, equipped_cosmetics = NULL WHERE id = 1"
-        )
+        connection.execute("UPDATE player SET xp = 0, equipped_cosmetics = NULL WHERE id = 1")
         connection.execute("UPDATE category_progress SET xp = 0")
         connection.execute("DELETE FROM equipped_gear")
-        connection.execute("DELETE FROM inventory")
     return character_state()
 
 

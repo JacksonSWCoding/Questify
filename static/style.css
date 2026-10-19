@@ -72,6 +72,159 @@ body {
     letter-spacing: 1px;
 }
 
+.game-onboarding {
+    margin: 12px auto 0;
+    max-width: 520px;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: var(--muted);
+}
+
+.deploy-notice {
+    margin: 10px auto 0;
+    max-width: 520px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.08);
+    font-size: 0.8rem;
+    color: #fcd34d;
+}
+
+.app-status {
+    max-width: 1100px;
+    margin: 0 auto 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.app-status[hidden] {
+    display: none !important;
+}
+
+.app-status.is-error {
+    border: 1px solid #f87171;
+    background: rgba(127, 29, 29, 0.45);
+    color: #fecaca;
+}
+
+.app-status.is-warning {
+    border: 1px solid #fbbf24;
+    background: rgba(120, 53, 15, 0.45);
+    color: #fde68a;
+}
+
+.app-status.is-info {
+    border: 1px solid #60a5fa;
+    background: rgba(30, 58, 138, 0.4);
+    color: #bfdbfe;
+}
+
+.task-status {
+    min-height: 1.25em;
+    margin: 0 0 10px;
+    font-size: 0.85rem;
+    color: #fca5a5;
+}
+
+.task-status:empty {
+    display: none;
+}
+
+.wallet-status {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #fbbf24;
+    background: rgba(120, 53, 15, 0.35);
+    color: #fde68a;
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.wallet-status[hidden] {
+    display: none !important;
+}
+
+.completed-quests {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--stone-border);
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.completed-quests summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text);
+    user-select: none;
+}
+
+.completed-task-list {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+}
+
+.completed-task-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--stone-border);
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.completed-task-list li .badge {
+    margin-left: auto;
+}
+
+.task-edit-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.task-edit-row input[type="text"] {
+    flex: 1 1 160px;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 2px solid var(--parchment-edge);
+    border-radius: 6px;
+    background: #fdf6e3;
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.task-edit-row select {
+    padding: 8px 10px;
+    border: 2px solid var(--parchment-edge);
+    border-radius: 6px;
+    background: #fdf6e3;
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.task-edit-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.task-edit-actions button {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+
 .app-container {
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);

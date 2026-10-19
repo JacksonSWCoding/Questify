@@ -7,6 +7,7 @@ env/
 instance/
 *.db
 *.sqlite3
+questify_data.json
 
 # environment variables
 .env

@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Questify</title>
+    <meta
+        name="description"
+        content="Questify turns your goals into an adventure—complete quests, earn XP and coins, unlock gear, and shop for cosmetics."
+    >
+    <meta property="og:title" content="Questify">
+    <meta
+        property="og:description"
+        content="Complete quests, earn XP and coins, unlock gear, and customize your hero."
+    >
+    <meta property="og:type" content="website">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="/favicon.ico">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,14 +24,28 @@
         rel="stylesheet"
     >
 
-    <link rel="stylesheet" href="/static/style.css?v=forest1">
+    <link rel="stylesheet" href="/static/style.css?v=forest2">
     <link rel="stylesheet" href="/static/shop.css?v=3">
 </head>
 
 <body>
+    <div
+        id="app-status"
+        class="app-status"
+        role="alert"
+        aria-live="polite"
+        hidden
+    ></div>
+
     <header class="hero-header">
         <h1 class="game-title">Questify</h1>
         <p class="game-subtitle">Turn Your Goals Into an Adventure</p>
+        <p class="game-onboarding">
+            Complete quests → earn XP and coins → unlock gear → spend coins in the shop.
+        </p>
+        <p id="deploy-notice" class="deploy-notice" hidden>
+            On the live demo, progress may reset between sessions while the server restarts.
+        </p>
     </header>
 
     <div class="app-container">
@@ -43,7 +69,22 @@
                 <button id="add-btn" type="button">Accept Quest</button>
             </div>
 
+            <p
+                id="task-status"
+                class="task-status"
+                role="status"
+                aria-live="polite"
+            ></p>
+
             <ul id="task-list"></ul>
+
+            <details id="completed-quests" class="completed-quests" hidden>
+                <summary>
+                    Completed quests
+                    (<span id="completed-count">0</span>)
+                </summary>
+                <ul id="completed-task-list" class="completed-task-list"></ul>
+            </details>
         </section>
 
         <section class="character-panel">
@@ -142,6 +183,13 @@
 
                 <div id="unlocked-gear-list" class="unlocked-gear"></div>
             </div>
+
+            <p
+                id="wallet-status"
+                class="wallet-status"
+                role="alert"
+                hidden
+            ></p>
 
             <p class="wallet-line">
                 🪙 Your Coins:
@@ -299,7 +347,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <script src="/static/evolution.js"></script>
-    <script src="/static/app.js"></script>
-    <script src="/static/shop.js?v=8"></script>
+    <script src="/static/app.js?v=2"></script>
+    <script src="/static/shop.js?v=9"></script>
 </body>
 </html>
