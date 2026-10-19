@@ -94,9 +94,10 @@ class BackendTests(unittest.TestCase):
         self.client.patch("/api/player/customization", json={
             "character_model": "female", "equipped_items": ["glasses"]
         })
+        coins_before_reset = self.get_player()["coins"]
         self.client.post("/api/reset-state", json={"mode": "reset"})
         self.assertEqual(self.get_player()["equipped_items"], [])
-        self.assertEqual(self.get_player()["coins"], 10)
+        self.assertEqual(self.get_player()["coins"], coins_before_reset)
         forest = next(
             item for item in self.get_shop()["items"]
             if item["id"] == "forest_background"
@@ -109,10 +110,12 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/shop/red_hat/purchase").status_code, 403)
         self.assertEqual(self.get_player()["coins"], before)
         task = self.create_task(category="creative")
-        self.client.post(f"/api/tasks/{task}/complete")
+        complete = self.client.post(f"/api/tasks/{task}/complete")
+        self.assertEqual(complete.status_code, 200)
+        coins_after_quest = self.get_player()["coins"]
         self.assertEqual(self.client.post("/api/shop/red_hat/purchase").status_code, 201)
         self.assertEqual(self.client.post("/api/shop/red_hat/purchase").status_code, 409)
-        self.assertEqual(self.get_player()["coins"], before + 10 - 50)
+        self.assertEqual(self.get_player()["coins"], coins_after_quest - 50)
 
     def test_edit_task_survives_integration(self):
         task = self.create_task()
@@ -137,7 +140,8 @@ class BackendTests(unittest.TestCase):
 
         first_data = first.get_json()
         self.assertEqual(first_data["xp_awarded"], 10)
-        self.assertEqual(first_data["coins_awarded"], 10)
+        # Base reward plus first fitness unlock (black_shoes).
+        self.assertEqual(first_data["coins_awarded"], 25)
 
         second = self.client.post(
             f"/api/tasks/{task_id}/complete"
@@ -150,7 +154,7 @@ class BackendTests(unittest.TestCase):
 
         player = self.get_player()
         self.assertEqual(player["xp"], 10)
-        self.assertEqual(player["coins"], 10)
+        self.assertEqual(player["coins"], 25)
 
         character = self.client.get("/api/character-state").get_json()
         self.assertEqual(character["xp"]["fitness"], 10)
@@ -161,15 +165,16 @@ class BackendTests(unittest.TestCase):
         creative = self.create_task(category="creative")
         self.client.post(f"/api/tasks/{creative}/complete")
 
+        coins_before_purchase = self.get_player()["coins"]
         response = self.client.post("/api/shop/red_hat/purchase")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.get_json()["coins"], 20)
+        self.assertEqual(response.get_json()["coins"], coins_before_purchase - 50)
 
         repeated = self.client.post("/api/shop/red_hat/purchase")
         self.assertEqual(repeated.status_code, 409)
 
         shop = self.get_shop()
-        self.assertEqual(shop["coins"], 20)
+        self.assertEqual(shop["coins"], coins_before_purchase - 50)
 
         hat = next(item for item in shop["items"] if item["id"] == "red_hat")
         self.assertTrue(hat["owned"])
@@ -210,15 +215,16 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(response.status_code, 409)
 
         shop = self.get_shop()
-        self.assertEqual(shop["coins"], 50)
+        self.assertEqual(shop["coins"], self.get_player()["coins"])
         self.assertFalse(any(item["owned"] for item in shop["items"]))
 
     def test_unknown_item_does_not_charge_coins(self):
         self.earn_coins(1)
 
+        coins_before = self.get_player()["coins"]
         response = self.client.post("/api/shop/999/purchase")
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(self.get_player()["coins"], 10)
+        self.assertEqual(self.get_player()["coins"], coins_before)
 
     def test_delete_removes_task_without_rewards(self):
         task_id = self.create_task()
@@ -299,6 +305,8 @@ class BackendTests(unittest.TestCase):
         )
         self.assertEqual(customization.status_code, 200)
 
+        coins_before_reset = self.get_player()["coins"]
+
         response = self.client.post(
             "/api/reset-state",
             json={"mode": "reset"}
@@ -307,7 +315,7 @@ class BackendTests(unittest.TestCase):
 
         player = self.get_player()
         self.assertEqual(player["xp"], 0)
-        self.assertEqual(player["coins"], 20)
+        self.assertEqual(player["coins"], coins_before_reset)
         self.assertEqual(player["character_model"], "female")
 
         character = response.get_json()

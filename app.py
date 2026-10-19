@@ -2,11 +2,18 @@ import json
 import os
 import tempfile
 import threading
+from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
 
 import evolution_logic
 import nessie_service
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent / ".env")
+except ImportError:
+    pass
 
 app = Flask(__name__, static_folder="static")
 
@@ -129,6 +136,11 @@ def index():
 @app.get("/favicon.ico")
 def favicon():
     return send_from_directory("static", "favicon.svg", mimetype="image/svg+xml")
+
+
+@app.get("/api/health")
+def health():
+    return jsonify({"status": "ok", "message": "Questify API is running"})
 
 
 @app.get("/api/tasks")
@@ -335,6 +347,13 @@ def purchase_shop_item_by_id(item_id):
 
 @app.post("/api/reset-state")
 def reset_state():
+    if os.environ.get("VERCEL") and os.environ.get("RESET_DISABLED", "").lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return jsonify({"error": "Reset is disabled on this deployment"}), 403
+
     data = request.get_json(silent=True) or {}
     mode = data.get("mode", "reset")
     try:
